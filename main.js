@@ -7,10 +7,9 @@ const DEFAULT_SETTINGS = {
     modalWidth: 600,
     modalHeight: 400,
     triggerKey: 'Alt',
-    apiName: "DeepSeek",
-    apiUrl: "https://api.deepseek.com/anthropic",
+    apiUrl: '',
     apiKey: '',
-    apiModel: 'deepseek-v4-flash'
+    apiModel: ''
 
 };
 
@@ -116,7 +115,16 @@ class AISearchSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        containerEl.createEl('h2', { text: 'DeepSeek设置' });
+        containerEl.createEl('h2', { text: 'API设置' });
+
+        new Setting(containerEl)
+            .setName('服务器地址')
+            .addText(text => text
+                .setValue(this.plugin.settings.apiUrl)
+                .onChange(async (value) => {
+                    this.plugin.settings.apiUrl = value;
+                    await this.plugin.saveSettings();
+                }));
 
         new Setting(containerEl)
             .setName('API Key')
@@ -129,10 +137,8 @@ class AISearchSettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('模式')
-            .addDropdown(dropdown => dropdown
-                .addOption('deepseek-v4-flash', '快速模式')
-                .addOption('deepseek-v4-pro', '专家模式')
+            .setName('模型类型')
+            .addText(text => text
                 .setValue(this.plugin.settings.apiModel)
                 .onChange(async (value) => {
                     this.plugin.settings.apiModel = value;
@@ -194,7 +200,7 @@ class AISearchModal extends Modal {
         inputEl.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter' && inputEl.value.trim() !== "") {
                 const query = inputEl.value;
-                const { apiKey, apiModel } = this.plugin.settings;
+                const { apiUrl, apiKey, apiModel } = this.plugin.settings;
 
                 if (!apiKey) {
                     resultArea.setText("❌ 请先在插件设置中填写 API Key");
@@ -215,7 +221,7 @@ class AISearchModal extends Modal {
                     
                     // 参照官方文档：Base URL 为 https://api.deepseek.com
                     const response = await requestUrl({
-                        url: 'https://api.deepseek.com/chat/completions',
+                        url: apiUrl,
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -243,7 +249,11 @@ class AISearchModal extends Modal {
                     if (result.choices && result.choices.length > 0) {
                         statusEl.remove(); // 移除思考状态
                         const answer = result.choices[0].message.content;
-                        responseEl.setText(answer);
+                        const { MarkdownRenderer } = require('obsidian');
+
+                        responseEl.empty(); 
+
+                        await MarkdownRenderer.renderMarkdown(answer, responseEl, '', this.plugin);
                     }
 
                 } catch (error) {

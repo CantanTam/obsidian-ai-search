@@ -1,22 +1,8 @@
 {
-  "modalWidth": 1200,
-  "modalHeight": 800,
+  "modalWidth": 600,
+  "modalHeight": 400,
   "triggerKey": "Alt",
-  "apiName": "DeepSeek",
-  "apiUrl": "https://api.deepseek.com/anthropic",
+  "apiUrl": "https://api.deepseek.com/chat/completions",
   "apiKey": "sk-dcfabe16bbc84d26983b3f26af8b9b2b",
-  "apiModel": "deepseek-v4-flash",
-  "provider": "deepseek",
-  "deepseek": {
-    "name": "DeepSeek",
-    "apiUrl": "https://api.deepseek.com/v1/chat/completions",
-    "apiKey": "",
-    "model": "deepseek-chat"
-  },
-  "chatgpt": {
-    "name": "ChatGPT",
-    "apiUrl": "",
-    "apiKey": "",
-    "model": "gpt-4o-mini"
-  }
+  "apiModel": "deepseek-v4-flash"
 }
