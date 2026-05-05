@@ -16,8 +16,6 @@
     padding: 0 !important;
 
     /* 自定义外观 */
-    width: 600px;
-    height: 400px;
     display: flex;
     flex-direction: column;
     border-radius: 12px;
