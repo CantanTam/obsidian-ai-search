@@ -1,0 +1,68 @@
+/* ---- 遮罩层：必须全透明，否则挡住磨砂效果 ---- */
+.deepseek-overlay {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+/* ---- Modal 容器：用 !important 彻底覆盖默认的白色/阴影/内边距 ---- */
+.deepseek-modal {
+    /* 先清掉所有默认样式 */
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+
+    /* 自定义外观 */
+    width: 600px;
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 12px;
+    overflow: hidden;
+
+    /* 半透明磨砂核心：取主题变量并加透明度 */
+    background-color: color-mix(in srgb, var(--background-primary-alt) 80%, transparent) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: var(--shadow-l);
+    border: 1px solid var(--background-modifier-border) !important;
+}
+
+/* ---- 内部 content 容器（强制无默认边距） ---- */
+.deepseek-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0 !important;
+}
+
+/* ---- 输入框容器 ---- */
+.deepseek-input-container {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* ---- 输入框 ---- */
+.deepseek-input {
+    width: 100%;
+    background: var(--background-modifier-form-field);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    color: var(--text-normal);
+    font-size: 18px;
+    padding: 10px 15px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+/* ---- 结果展示区 ---- */
+.deepseek-result-area {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    color: var(--text-muted);
+    font-size: 15px;
+}

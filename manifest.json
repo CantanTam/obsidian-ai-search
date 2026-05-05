@@ -1,0 +1,9 @@
+{
+    "id": "AAAdeepseekit",
+    "name": "AAADeepSeekIt",
+    "version": "1.0.0",
+    "minAppVersion": "1.0.0",
+    "description": "双击 Alt 唤起 DeepSeek 搜索框",
+    "author": "YourName",
+    "isDesktopOnly": true
+}
