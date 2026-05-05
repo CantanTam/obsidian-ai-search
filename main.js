@@ -1,35 +1,34 @@
 "use strict";
 
-const { Plugin, Modal } = require('obsidian');
+const { Plugin, Modal, setIcon } = require('obsidian');
 
 module.exports = class DeepSeekIt extends Plugin {
     async onload() {
         this.lastAltTime = 0;
-        this.currentModal = null;   // ★ 新增：记录当前打开的 Modal
+        this.currentModal = null;
 
         this.registerDomEvent(document, 'keydown', (evt) => {
             if (evt.key === 'Alt') {
-                // ★ 如果已经有一个窗口打开，按 Alt 直接关闭
+
                 if (this.currentModal) {
                     this.currentModal.close();
                     this.currentModal = null;
-                    this.lastAltTime = 0;   // 重置双击计时，避免干扰
+                    this.lastAltTime = 0;
                     return;
                 }
 
-                // 原有双击打开逻辑
                 const currentTime = Date.now();
                 const timeDiff = currentTime - this.lastAltTime;
+
                 if (timeDiff > 0 && timeDiff < 300) {
                     const modal = new DeepSeekSearchModal(this.app);
-                    
-                    // ★ 重写 close 方法，以便窗口因任何原因关闭时都能清除引用
+
                     const originalClose = modal.close.bind(modal);
                     modal.close = () => {
                         originalClose();
                         this.currentModal = null;
                     };
-                    
+
                     this.currentModal = modal;
                     modal.open();
                     this.lastAltTime = 0;
@@ -44,20 +43,37 @@ module.exports = class DeepSeekIt extends Plugin {
 class DeepSeekSearchModal extends Modal {
     onOpen() {
         const { contentEl, modalEl } = this;
+
         modalEl.querySelector('.modal-close-button')?.remove();
 
-        // 加自定义类名，所有样式都交给 styles.css 控制
         modalEl.parentElement.addClass('deepseek-overlay');
         modalEl.addClass('deepseek-modal');
         contentEl.addClass('deepseek-content');
 
-        // 输入区域
+        // 输入区域（带清除按钮）
         const inputContainer = contentEl.createDiv({ cls: 'deepseek-input-container' });
-        const inputEl = inputContainer.createEl('input', {
+
+        const inputWrapper = inputContainer.createDiv({ cls: 'deepseek-input-wrapper' });
+
+        const inputEl = inputWrapper.createEl('input', {
             cls: 'deepseek-input',
-            attr: { placeholder: 'DeepSeek 搜索...', type: 'text' }
+            attr: {
+                placeholder: 'DeepSeek 搜索...',
+                type: 'text'
+            }
         });
-        
+
+        const clearBtn = inputWrapper.createDiv({
+            cls: 'deepseek-clear-btn clickable-icon'
+        });
+
+        setIcon(clearBtn, 'cross');
+
+        clearBtn.addEventListener('click', () => {
+            inputEl.value = '';
+            inputEl.focus();
+        });
+
         setTimeout(() => inputEl.focus(), 50);
 
         // 结果区域

@@ -47,6 +47,13 @@
     border-bottom: 1px solid rgba(76, 140, 230, 1);
 }
 
+/* ⭐ 新增：input + 按钮横向布局 */
+.deepseek-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 /* ---- 输入框 ---- */
 .deepseek-input {
     width: 100%;
@@ -58,6 +65,32 @@
     padding: 10px 10px;
     outline: none;
     box-sizing: border-box;
+}
+
+/* 清除按钮 */
+.deepseek-clear-btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%; 
+    background: var(--background-modifier-hover);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+/* icon 本身大小调整（Obsidian svg） */
+.deepseek-clear-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* hover：变红 */
+.deepseek-clear-btn:hover {
+    background: #ff4d4f;
+    color: white;
 }
 
 /* ---- 结果展示区 ---- */
