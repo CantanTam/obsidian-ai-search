@@ -172,12 +172,17 @@ class AISearchModal extends Modal {
 
         const inputWrapper = inputContainer.createDiv({ cls: 'aisearch-input-wrapper' });
 
-        const inputEl = inputWrapper.createEl('input', {
+        const inputEl = inputWrapper.createEl('textarea', {
             cls: 'aisearch-input',
             attr: {
                 placeholder: 'AI 搜索...',
-                type: 'text'
+                rows: "1"
             }
+        });
+
+        inputEl.addEventListener('input', function() {
+            this.style.height = 'auto'; 
+            this.style.height = (this.scrollHeight) + 'px'; 
         });
 
         const clearBtn = inputWrapper.createDiv({
@@ -198,8 +203,13 @@ class AISearchModal extends Modal {
         resultArea.setText('等待输入...');
 
         inputEl.addEventListener('keydown', async (e) => {
-            if (e.key === 'Enter' && inputEl.value.trim() !== "") {
-                const query = inputEl.value;
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // 阻止默认的换行
+
+                const query = inputEl.value.trim();
+            
+                if (query === "") return;
+
                 const { apiUrl, apiKey, apiModel } = this.plugin.settings;
 
                 if (!apiKey) {
@@ -209,6 +219,9 @@ class AISearchModal extends Modal {
 
                 // 立即清空输入框并显示状态
                 inputEl.value = "";
+
+                inputEl.style.height = 'auto'; 
+
                 resultArea.empty();
                 const statusEl = resultArea.createDiv({ cls: 'aisearch-status' });
                 statusEl.setText(`🚀 ${apiModel} 思考中...`);

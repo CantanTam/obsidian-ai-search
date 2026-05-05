@@ -63,6 +63,13 @@
     padding: 10px 10px;
     outline: none;
     box-sizing: border-box;
+
+    resize: none;            /* 禁止用户手动拉伸 */
+    overflow-y: hidden;      /* 还没超过最大高度时，隐藏滚动条 */
+    min-height: 30px;        /* 初始高度 */
+    max-height: 200px;       /* 设置一个最大高度，防止输入框无限变大 */
+    line-height: 1.5;
+    display: block;
 }
 
 /* 清除按钮 */
