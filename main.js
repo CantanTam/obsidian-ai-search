@@ -5,12 +5,33 @@ const { Plugin, Modal } = require('obsidian');
 module.exports = class DeepSeekIt extends Plugin {
     async onload() {
         this.lastAltTime = 0;
+        this.currentModal = null;   // ★ 新增：记录当前打开的 Modal
+
         this.registerDomEvent(document, 'keydown', (evt) => {
             if (evt.key === 'Alt') {
+                // ★ 如果已经有一个窗口打开，按 Alt 直接关闭
+                if (this.currentModal) {
+                    this.currentModal.close();
+                    this.currentModal = null;
+                    this.lastAltTime = 0;   // 重置双击计时，避免干扰
+                    return;
+                }
+
+                // 原有双击打开逻辑
                 const currentTime = Date.now();
                 const timeDiff = currentTime - this.lastAltTime;
                 if (timeDiff > 0 && timeDiff < 300) {
-                    new DeepSeekSearchModal(this.app).open();
+                    const modal = new DeepSeekSearchModal(this.app);
+                    
+                    // ★ 重写 close 方法，以便窗口因任何原因关闭时都能清除引用
+                    const originalClose = modal.close.bind(modal);
+                    modal.close = () => {
+                        originalClose();
+                        this.currentModal = null;
+                    };
+                    
+                    this.currentModal = modal;
+                    modal.open();
                     this.lastAltTime = 0;
                 } else {
                     this.lastAltTime = currentTime;
@@ -23,6 +44,7 @@ module.exports = class DeepSeekIt extends Plugin {
 class DeepSeekSearchModal extends Modal {
     onOpen() {
         const { contentEl, modalEl } = this;
+        modalEl.querySelector('.modal-close-button')?.remove();
 
         // 加自定义类名，所有样式都交给 styles.css 控制
         modalEl.parentElement.addClass('deepseek-overlay');
@@ -35,6 +57,7 @@ class DeepSeekSearchModal extends Modal {
             cls: 'deepseek-input',
             attr: { placeholder: 'DeepSeek 搜索...', type: 'text' }
         });
+        
         setTimeout(() => inputEl.focus(), 50);
 
         // 结果区域

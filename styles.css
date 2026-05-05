@@ -25,10 +25,9 @@
 
     /* 半透明磨砂核心：取主题变量并加透明度 */
     background-color: color-mix(in srgb, var(--background-primary-alt) 80%, transparent) !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
     box-shadow: var(--shadow-l);
-    border: 1px solid var(--background-modifier-border) !important;
 }
 
 /* ---- 内部 content 容器（强制无默认边距） ---- */
@@ -41,19 +40,22 @@
 
 /* ---- 输入框容器 ---- */
 .deepseek-input-container {
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--background-modifier-border);
+    padding-top: 1px;
+    padding-right: 10px;
+    padding-left: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(76, 140, 230, 1);
 }
 
 /* ---- 输入框 ---- */
 .deepseek-input {
     width: 100%;
-    background: var(--background-modifier-form-field);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     color: var(--text-normal);
-    font-size: 18px;
-    padding: 10px 15px;
+    font-size: 18px !important;
+    padding: 10px 10px;
     outline: none;
     box-sizing: border-box;
 }
