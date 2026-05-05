@@ -1,12 +1,12 @@
 /* ---- 遮罩层：必须全透明，否则挡住磨砂效果 ---- */
-.deepseek-overlay {
+.aisearch-overlay {
     background-color: transparent !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
 }
 
 /* ---- Modal 容器：用 !important 彻底覆盖默认的白色/阴影/内边距 ---- */
-.deepseek-modal {
+.aisearch-modal {
     /* 先清掉所有默认样式 */
     background: transparent !important;
     background-color: transparent !important;
@@ -31,7 +31,7 @@
 }
 
 /* ---- 内部 content 容器（强制无默认边距） ---- */
-.deepseek-content {
+.aisearch-content {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -39,7 +39,7 @@
 }
 
 /* ---- 输入框容器 ---- */
-.deepseek-input-container {
+.aisearch-input-container {
     padding-top: 1px;
     padding-right: 10px;
     padding-left: 10px;
@@ -48,14 +48,14 @@
 }
 
 /* ⭐ 新增：input + 按钮横向布局 */
-.deepseek-input-wrapper {
+.aisearch-input-wrapper {
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
 /* ---- 输入框 ---- */
-.deepseek-input {
+.aisearch-input {
     width: 100%;
     background: transparent !important;
     border: none !important;
@@ -68,7 +68,7 @@
 }
 
 /* 清除按钮 */
-.deepseek-clear-btn {
+.aisearch-clear-btn {
     width: 22px;
     height: 22px;
     display: flex;
@@ -82,19 +82,19 @@
 }
 
 /* icon 本身大小调整（Obsidian svg） */
-.deepseek-clear-btn svg {
+.aisearch-clear-btn svg {
     width: 18px;
     height: 18px;
 }
 
 /* hover：变红 */
-.deepseek-clear-btn:hover {
+.aisearch-clear-btn:hover {
     background: #ff4d4f;
     color: white;
 }
 
 /* ---- 结果展示区 ---- */
-.deepseek-result-area {
+.aisearch-result-area {
     flex: 1;
     padding: 20px;
     overflow-y: auto;

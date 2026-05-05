@@ -2,7 +2,7 @@
 
 const { Plugin, Modal, setIcon } = require('obsidian');
 
-module.exports = class DeepSeekIt extends Plugin {
+module.exports = class AISearchPlugin extends Plugin {
     async onload() {
         this.lastAltTime = 0;
         this.currentModal = null;
@@ -21,7 +21,7 @@ module.exports = class DeepSeekIt extends Plugin {
                 const timeDiff = currentTime - this.lastAltTime;
 
                 if (timeDiff > 0 && timeDiff < 300) {
-                    const modal = new DeepSeekSearchModal(this.app);
+                    const modal = new AISearchModal(this.app);
 
                     const originalClose = modal.close.bind(modal);
                     modal.close = () => {
@@ -40,31 +40,32 @@ module.exports = class DeepSeekIt extends Plugin {
     }
 };
 
-class DeepSeekSearchModal extends Modal {
+class AISearchModal extends Modal {
     onOpen() {
         const { contentEl, modalEl } = this;
 
+        // 移除默认关闭按钮
         modalEl.querySelector('.modal-close-button')?.remove();
 
-        modalEl.parentElement.addClass('deepseek-overlay');
-        modalEl.addClass('deepseek-modal');
-        contentEl.addClass('deepseek-content');
+        modalEl.parentElement.addClass('aisearch-overlay');
+        modalEl.addClass('aisearch-modal');
+        contentEl.addClass('aisearch-content');
 
         // 输入区域（带清除按钮）
-        const inputContainer = contentEl.createDiv({ cls: 'deepseek-input-container' });
+        const inputContainer = contentEl.createDiv({ cls: 'aisearch-input-container' });
 
-        const inputWrapper = inputContainer.createDiv({ cls: 'deepseek-input-wrapper' });
+        const inputWrapper = inputContainer.createDiv({ cls: 'aisearch-input-wrapper' });
 
         const inputEl = inputWrapper.createEl('input', {
-            cls: 'deepseek-input',
+            cls: 'aisearch-input',
             attr: {
-                placeholder: 'DeepSeek 搜索...',
+                placeholder: 'AI 搜索...',
                 type: 'text'
             }
         });
 
         const clearBtn = inputWrapper.createDiv({
-            cls: 'deepseek-clear-btn clickable-icon'
+            cls: 'aisearch-clear-btn clickable-icon'
         });
 
         setIcon(clearBtn, 'cross');
@@ -77,7 +78,7 @@ class DeepSeekSearchModal extends Modal {
         setTimeout(() => inputEl.focus(), 50);
 
         // 结果区域
-        const resultArea = contentEl.createDiv({ cls: 'deepseek-result-area' });
+        const resultArea = contentEl.createDiv({ cls: 'aisearch-result-area' });
         resultArea.setText('等待输入...');
 
         inputEl.addEventListener('keydown', (e) => {
