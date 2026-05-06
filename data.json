@@ -4,5 +4,7 @@
   "triggerKey": "Alt",
   "apiUrl": "https://api.deepseek.com/chat/completions",
   "apiKey": "sk-dcfabe16bbc84d26983b3f26af8b9b2b",
-  "apiModel": "deepseek-v4-flash"
+  "apiModel": "deepseek-v4-flash",
+  "apiMaxToken": 1900,
+  "apiTemperature": 2
 }

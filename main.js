@@ -9,7 +9,9 @@ const DEFAULT_SETTINGS = {
     triggerKey: 'Alt',
     apiUrl: '',
     apiKey: '',
-    apiModel: ''
+    apiModel: '',
+    apiMaxToken: 2048,
+    apiTemperature: 0.8,
 
 };
 
@@ -35,7 +37,11 @@ module.exports = class AISearchPlugin extends Plugin {
                 const timeDiff = currentTime - this.lastTriggerTime;
 
                 if (timeDiff > 0 && timeDiff < 300) {
-                    const modal = new AISearchModal(this.app, this);
+                    // 1. 在打开弹窗前，先抓取当前活跃的编辑器
+                    const activeView = this.app.workspace.getActiveViewOfType(require('obsidian').MarkdownView);
+                    const editor = activeView ? activeView.editor : null;
+
+                    const modal = new AISearchModal(this.app, this, editor);
 
                     const originalClose = modal.close.bind(modal);
                     modal.close = () => {
@@ -143,7 +149,31 @@ class AISearchSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.apiModel = value;
                     await this.plugin.saveSettings();
-                }));                
+                }));    
+                
+        new Setting(containerEl)
+            .setName('输出长度上限')
+            .setDesc('数值越小越节约token数')
+            .addSlider(slider => slider
+                .setLimits(100, 5000, 100)
+                .setValue(this.plugin.settings.apiMaxToken)
+                .setDynamicTooltip()
+                .onChange(async (value) => {
+                    this.plugin.settings.apiMaxToken = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+            .setName('采样温度')
+            .setDesc('数值越小越精准，数值越大越越有创意')
+            .addSlider(slider => slider
+                .setLimits(0, 2, 0.1)
+                .setValue(this.plugin.settings.apiTemperature)
+                .setDynamicTooltip()
+                .onChange(async (value) => {
+                    this.plugin.settings.apiTemperature = value;
+                    await this.plugin.saveSettings();
+                }));
     }
 }
 
@@ -152,135 +182,149 @@ class AISearchModal extends Modal {
     constructor(app, plugin) {
         super(app);
         this.plugin = plugin;
+        this.inputEl = null;
+        this.resultArea = null;
     }
 
     onOpen() {
-        const { contentEl, modalEl } = this;
+        this.setupModalStyle();
+        this.renderUI();
+        this.bindEvents();
+        
+        // 自动聚焦
+        setTimeout(() => this.inputEl?.focus(), 50);
+    }
 
-        modalEl.style.width = this.plugin.settings.modalWidth + "px";
-        modalEl.style.height = this.plugin.settings.modalHeight + "px";
-
-        // 移除默认关闭按钮
+    // 1. 初始化容器样式
+    setupModalStyle() {
+        const { modalEl } = this;
+        modalEl.style.width = `${this.plugin.settings.modalWidth}px`;
+        modalEl.style.height = `${this.plugin.settings.modalHeight}px`;
         modalEl.querySelector('.modal-close-button')?.remove();
-
         modalEl.parentElement.addClass('aisearch-overlay');
         modalEl.addClass('aisearch-modal');
-        contentEl.addClass('aisearch-content');
+        this.contentEl.addClass('aisearch-content');
+    }
 
-        // 输入区域（带清除按钮）
-        const inputContainer = contentEl.createDiv({ cls: 'aisearch-input-container' });
-
+    // 2. 渲染静态 UI 组件
+    renderUI() {
+        // 输入区域
+        const inputContainer = this.contentEl.createDiv({ cls: 'aisearch-input-container' });
         const inputWrapper = inputContainer.createDiv({ cls: 'aisearch-input-wrapper' });
 
-        const inputEl = inputWrapper.createEl('textarea', {
+        this.inputEl = inputWrapper.createEl('textarea', {
             cls: 'aisearch-input',
-            attr: {
-                placeholder: 'AI 搜索...',
-                rows: "1"
-            }
+            attr: { placeholder: 'Shift + Enter 换行', rows: "1" }
         });
 
-        inputEl.addEventListener('input', function() {
-            this.style.height = 'auto'; 
-            this.style.height = (this.scrollHeight) + 'px'; 
-        });
-
-        const clearBtn = inputWrapper.createDiv({
-            cls: 'aisearch-clear-btn clickable-icon'
-        });
-
+        // 清除按钮
+        const clearBtn = inputWrapper.createDiv({ cls: 'aisearch-clear-btn clickable-icon' });
         setIcon(clearBtn, 'cross');
-
-        clearBtn.addEventListener('click', () => {
-            inputEl.value = '';
-            inputEl.focus();
-        });
-
-        setTimeout(() => inputEl.focus(), 50);
+        const { setTooltip } = require('obsidian');
+        setTooltip(clearBtn, '清空输入', { placement: 'top' });
 
         // 结果区域
-        const resultArea = contentEl.createDiv({ cls: 'aisearch-result-area' });
-        resultArea.setText('等待输入...');
+        this.resultArea = this.contentEl.createDiv({ cls: 'aisearch-result-area' });
+        this.resultArea.setText('等待输入...');
+        this.resultArea.setAttribute('tabindex', '0');
 
-        inputEl.addEventListener('keydown', async (e) => {
+        this.resultArea.setAttribute('contenteditable', 'true'); 
+
+        // 按钮点击事件（简单逻辑直接写，复杂逻辑拆出）
+        clearBtn.addEventListener('click', () => this.resetInput());
+    }
+
+    // 3. 绑定复杂的交互事件
+    bindEvents() {
+        // 高度自动调整
+        this.inputEl.addEventListener('input', () => {
+            this.inputEl.style.height = 'auto';
+            this.inputEl.style.height = `${this.inputEl.scrollHeight}px`;
+        });
+
+        // 回车发送
+        this.inputEl.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // 阻止默认的换行
+                e.preventDefault();
 
-                const query = inputEl.value.trim();
-            
-                if (query === "") return;
+                this.handleSearch();
 
-                const { apiUrl, apiKey, apiModel } = this.plugin.settings;
-
-                if (!apiKey) {
-                    resultArea.setText("❌ 请先在插件设置中填写 API Key");
-                    return;
-                }
-
-                // 立即清空输入框并显示状态
-                inputEl.value = "";
-
-                inputEl.style.height = 'auto'; 
-
-                resultArea.empty();
-                const statusEl = resultArea.createDiv({ cls: 'aisearch-status' });
-                statusEl.setText(`🚀 ${apiModel} 思考中...`);
-                
-                const responseEl = resultArea.createDiv({ cls: 'aisearch-response' });
-                responseEl.style.whiteSpace = "pre-wrap";
-
-                try {
-                    const { requestUrl } = require('obsidian'); 
-                    
-                    // 参照官方文档：Base URL 为 https://api.deepseek.com
-                    const response = await requestUrl({
-                        url: apiUrl,
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey.trim()}`
-                        },
-                        body: JSON.stringify({
-                            model: apiModel, // deepseek-v4-flash 或 deepseek-v4-pro
-                            messages: [
-                                { role: "system", content: "你是一个集成在 Obsidian 笔记软件中的 AI 助手。请提供专业、简洁且准确的回答。" },
-                                { role: "user", content: query }
-                            ],
-                            stream: false,
-                            // 官方建议：可以通过 max_tokens 控制返回长度，节省额度
-                            max_tokens: 2048,
-                            temperature: 0.7
-                        })
-                    });
-
-                    const result = response.json;
-
-                    if (result.error) {
-                        throw new Error(result.error.message);
-                    }
-
-                    if (result.choices && result.choices.length > 0) {
-                        statusEl.remove(); // 移除思考状态
-                        const answer = result.choices[0].message.content;
-                        const { MarkdownRenderer } = require('obsidian');
-
-                        responseEl.empty(); 
-
-                        await MarkdownRenderer.renderMarkdown(answer, responseEl, '', this.plugin);
-                    }
-
-                } catch (error) {
-                    console.error("DeepSeek API Error:", error);
-                    // 针对官方常见错误码的处理
-                    let errorMsg = error.message;
-                    if (errorMsg.includes("401")) errorMsg = "API Key 错误或失效";
-                    if (errorMsg.includes("402")) errorMsg = "账户余额不足";
-                    if (errorMsg.includes("429")) errorMsg = "请求太快了，请稍后再试";
-                    
-                    resultArea.setText(`❌ 发生错误: ${errorMsg}`);
-                }
+                this.resultArea.focus(); 
             }
         });
+    }
+
+    // 4. 搜索业务逻辑：协调 UI 与 API
+    async handleSearch() {
+        const query = this.inputEl.value.trim();
+        if (!query) return;
+
+        const { apiKey, apiModel } = this.plugin.settings;
+        if (!apiKey) {
+            this.resultArea.setText("❌ 请先在插件设置中填写 API Key");
+            return;
+        }
+
+        // UI 状态切换
+        this.resetInput(); // 发送后清空输入框高度
+        this.resultArea.empty();
+        const statusEl = this.resultArea.createDiv({ cls: 'aisearch-status' });
+        statusEl.setText(`🚀 ${apiModel} 思考中...`);
+        const responseEl = this.resultArea.createDiv({ cls: 'aisearch-response' });
+
+        try {
+            const answer = await this.fetchAI(query);
+            statusEl.remove();
+            
+            const { MarkdownRenderer } = require('obsidian');
+            await MarkdownRenderer.renderMarkdown(answer, responseEl, '', this.plugin);
+        } catch (error) {
+            statusEl.setText(`❌ 错误: ${this.getFriendlyErrorMessage(error.message)}`);
+        }
+    }
+
+    // 5. 核心 API 请求（纯逻辑，不涉及 UI 渲染）
+    async fetchAI(query) {
+        const { requestUrl } = require('obsidian');
+        const { apiUrl, apiKey, apiModel, apiMaxToken, apiTemperature } = this.plugin.settings;
+
+        const response = await requestUrl({
+            url: apiUrl,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey.trim()}`
+            },
+            body: JSON.stringify({
+                model: apiModel,
+                messages: [
+                    { role: "system", content: "你是一个集成在 Obsidian 中的 AI 助手。" },
+                    { role: "user", content: query }
+                ],
+                max_tokens: apiMaxToken,   // 限制回复长度
+                temperature: apiTemperature,
+                stream: false       // 禁用流式传输
+            })
+        });
+
+        const result = response.json;
+        if (result.error) throw new Error(result.error.message);
+        return result.choices[0].message.content;
+    }
+
+    // 辅助方法：重置输入框
+    resetInput() {
+        this.inputEl.value = '';
+        this.inputEl.style.height = 'auto';
+        this.inputEl.focus();
+    }
+
+    // 辅助方法：错误码翻译
+    getFriendlyErrorMessage(msg) {
+        if (msg.includes("401")) return "API Key 错误";
+        if (msg.includes("402")) return "余额不足";
+        if (msg.includes("429")) return "频率过快";
+        return msg;
     }
 
     onClose() {
