@@ -6,5 +6,11 @@
   "apiKey": "sk-dcfabe16bbc84d26983b3f26af8b9b2b",
   "apiModel": "deepseek-v4-flash",
   "apiMaxToken": 1900,
-  "apiTemperature": 2
+  "apiTemperature": 2,
+  "upKey": "KeyI",
+  "downKey": "KeyK",
+  "leftKey": "KeyJ",
+  "rightKey": "keyL",
+  "sendKey": "Space",
+  "undefined": "Space"
 }
