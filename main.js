@@ -186,6 +186,7 @@ class AISearchModal extends Modal {
         this.savedRange = null;
         this._globalKeyHandler = null;
         this._resultKeyHandler = null;
+        this._lastSendTime = 0;
     }
 
     onOpen() {
@@ -308,7 +309,16 @@ class AISearchModal extends Modal {
             }
             if (e.code === settings.sendKey) {
                 e.preventDefault();
-                const selectedText = window.getSelection().toString();
+
+                // 2秒冷却：忽略连续快速触发
+                const now = Date.now();
+                if (now - this._lastSendTime < 2000) return;
+                this._lastSendTime = now;
+
+                // 获取选区文本，并去除首尾多余的换行符
+                const rawText = window.getSelection().toString();
+                const selectedText = rawText.replace(/^\n+|\n+$/g, '');   // 关键修改
+                
                 if (selectedText && this.editor) {
                     const cursor = this.editor.getCursor();
                     this.editor.replaceRange(selectedText, cursor);
@@ -318,14 +328,12 @@ class AISearchModal extends Modal {
                     });
 
                     if (this.plugin.settings.toClose) {
-                        // 开启自动关闭时：直接关闭，不执行变色动画
                         this.close();
                     } else {
-                        // 未开启自动关闭：只显示边框变色反馈，不关闭
                         this.resultArea.classList.add('send-flash');
                         setTimeout(() => {
                             this.resultArea.classList.remove('send-flash');
-                        }, 1000);
+                        }, 1500);
                     }
                 }
                 return;
