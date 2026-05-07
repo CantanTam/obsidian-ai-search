@@ -12,6 +12,7 @@
   "leftKey": "KeyJ",
   "rightKey": "KeyL",
   "sendKey": "Space",
+  "toClose": false,
   "selectKey": "KeyE",
   "undefined": "Space"
 }

@@ -27,11 +27,10 @@ const DEFAULT_SETTINGS = {
     leftKey: 'KeyJ',
     rightKey: 'KeyL',
     sendKey: 'Space',
+    toClose: false, 
 };
 
-// ------------------------------------------------------------
 // 主插件类
-// ------------------------------------------------------------
 class AISearchPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
@@ -74,9 +73,7 @@ class AISearchPlugin extends Plugin {
     }
 }
 
-// ------------------------------------------------------------
 // 设置面板 (使用辅助函数消除重复)
-// ------------------------------------------------------------
 class AISearchSettingTab extends PluginSettingTab {
     constructor(app, plugin) {
         super(app, plugin);
@@ -106,6 +103,7 @@ class AISearchSettingTab extends PluginSettingTab {
         this._addKeyBinding('模拟Left键', 'leftKey');
         this._addKeyBinding('模拟Right键', 'rightKey');
         this._addKeyBinding('发送按键', 'sendKey');
+        this._addToggle('发送后自动关闭', '发送操作后是否立即关闭搜索窗口', 'toClose');
 
         containerEl.createEl('h2', { text: '弹窗大小设置' });
         this._addSlider('窗口宽度', '', 'modalWidth', [300, 1200, 10]);
@@ -137,6 +135,18 @@ class AISearchSettingTab extends PluginSettingTab {
             });
     }
 
+    _addToggle(name, desc, key) {
+        new Setting(this.containerEl)
+            .setName(name)
+            .setDesc(desc)
+            .addToggle(t => t
+                .setValue(this.plugin.settings[key])
+                .onChange(async v => {
+                    this.plugin.settings[key] = v;
+                    await this.plugin.saveSettings();
+                }));
+    }
+
     _addSlider(name, desc, key, limits) {
         new Setting(this.containerEl)
             .setName(name)
@@ -165,9 +175,7 @@ class AISearchSettingTab extends PluginSettingTab {
     }
 }
 
-// ------------------------------------------------------------
 // 搜索弹窗
-// ------------------------------------------------------------
 class AISearchModal extends Modal {
     constructor(app, plugin, editor) {
         super(app);
@@ -296,14 +304,15 @@ class AISearchModal extends Modal {
                 e.preventDefault();
                 const selectedText = window.getSelection().toString();
                 if (selectedText && this.editor) {
-                    const cursor = this.editor.getCursor();                // 获取实时光标
-                    this.editor.replaceRange(selectedText, cursor);        // 在光标处插入
-                    // 将光标移动到插入文本的末尾
+                    const cursor = this.editor.getCursor();
+                    this.editor.replaceRange(selectedText, cursor);
                     this.editor.setCursor({
                         line: cursor.line,
                         ch: cursor.ch + selectedText.length
                     });
-                    this.close();
+                    if (this.plugin.settings.toClose) {   // 仅当 toClose 为 true 时关闭
+                        this.close();
+                    }
                 }
                 return;
             }
