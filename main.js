@@ -310,9 +310,16 @@ class AISearchModal extends Modal {
                         line: cursor.line,
                         ch: cursor.ch + selectedText.length
                     });
-                    if (this.plugin.settings.toClose) {   // 仅当 toClose 为 true 时关闭
-                        this.close();
-                    }
+
+                    // 给输出框添加闪烁类，1 秒后移除
+                    this.resultArea.classList.add('send-flash');
+                    setTimeout(() => {
+                        this.resultArea.classList.remove('send-flash');
+                        // 如果开启了自动关闭，颜色恢复后再关闭窗口
+                        if (this.plugin.settings.toClose) {
+                            this.close();
+                        }
+                    }, 1000);
                 }
                 return;
             }

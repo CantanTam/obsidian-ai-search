@@ -154,3 +154,9 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0; }
 }
+
+/* sendKey 反馈：输出框边框临时变绿 */
+.aisearch-result-area.send-flash {
+    border-color: #00cc66 !important;   /* 绿色 */
+    transition: border-color 0.2s ease; /* 平滑变色 */
+}
