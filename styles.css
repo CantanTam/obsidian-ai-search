@@ -147,3 +147,24 @@
     border-color: #00cc66 !important;
     box-shadow: 0 0 8px 2px rgba(0, 204, 102, 0.5) !important;
 }
+
+/* 定义闪烁动画 */
+@keyframes aisearch-flash-red {
+    0% {
+        border-color: var(--text-error) !important;
+        box-shadow: 0 0 10px var(--text-error);
+    }
+    100% {
+        border-color: transparent;
+        box-shadow: 0 0 0px transparent;
+    }
+}
+
+.aisearch-input-cleared {
+    /* 强制显示边框（防止有的主题默认不显示 border） */
+    border: 0px solid var(--text-error) !important;
+    /* 应用动画：持续 0.4s（比 JS 移除时间稍长一点，效果更自然） */
+    animation: aisearch-flash-red 0.5s ease-out;
+    /* 确保平滑过渡 */
+    transition: all 0.5s ease;
+}

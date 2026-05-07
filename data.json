@@ -13,6 +13,7 @@
   "rightKey": "KeyL",
   "sendKey": "Space",
   "toClose": false,
+  "clearInputTime": 1,
   "selectKey": "KeyE",
   "undefined": "Space"
 }

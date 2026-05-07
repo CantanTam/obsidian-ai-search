@@ -27,7 +27,8 @@ const DEFAULT_SETTINGS = {
     leftKey: 'KeyJ',
     rightKey: 'KeyL',
     sendKey: 'Space',
-    toClose: false, 
+    toClose: false,
+    clearInputTime: 1, 
 };
 
 // 主插件类
@@ -104,6 +105,7 @@ class AISearchSettingTab extends PluginSettingTab {
         this._addKeyBinding('模拟Right键', 'rightKey');
         this._addKeyBinding('发送按键', 'sendKey');
         this._addToggle('发送后自动关闭', '发送操作后是否立即关闭搜索窗口', 'toClose');
+        this._addSlider('清空输入框时间', '长按空格键清空输入框的时间阈值', 'clearInputTime', [0, 3, 0.1]);
 
         containerEl.createEl('h2', { text: '弹窗大小设置' });
         this._addSlider('窗口宽度', '', 'modalWidth', [300, 1200, 10]);
@@ -187,6 +189,9 @@ class AISearchModal extends Modal {
         this._globalKeyHandler = null;
         this._resultKeyHandler = null;
         this._lastSendTime = 0;
+        this._spaceTimer = null;
+        this._wasLongPress = false;
+        this.isComposing = false; 
     }
 
     onOpen() {
@@ -238,15 +243,50 @@ class AISearchModal extends Modal {
     }
 
     _bindEvents() {
+        // 1. 处理中文输入法状态，确保输入法开启时不触发清空逻辑
+        this.inputEl.addEventListener('compositionstart', () => { this.isComposing = true; });
+        this.inputEl.addEventListener('compositionend', () => { this.isComposing = false; });
+
         this.inputEl.addEventListener('input', () => {
             this.inputEl.style.height = 'auto';
             this.inputEl.style.height = `${this.inputEl.scrollHeight}px`;
         });
 
         this.inputEl.addEventListener('keydown', e => {
+            // --- 长按空格清空逻辑 ---
+            if (e.key === ' ' && !this.isComposing && this.plugin.settings.clearInputTime > 0) {
+                if (!e.repeat) {
+                    // 第一次按下时开始计时
+                    this._wasLongPress = false;
+                    this._spaceTimer = setTimeout(() => {
+                        this.inputEl.value = '';
+                        this.inputEl.style.height = 'auto';
+                        this._wasLongPress = true;
+                        // 可选：添加一个微弱的视觉反馈
+                        this.inputEl.classList.add('aisearch-input-cleared');
+                        setTimeout(() => this.inputEl.classList.remove('aisearch-input-cleared'), 500);
+                    }, this.plugin.settings.clearInputTime * 1000);
+                } else if (this._wasLongPress) {
+                    // 如果已经触发了清空，阻止后续自动重复产生的空格字符
+                    e.preventDefault();
+                }
+            }
+
+            // --- 原有 Enter 逻辑 ---
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this._search();
+            }
+        });
+
+        this.inputEl.addEventListener('keyup', e => {
+            if (e.key === ' ') {
+                clearTimeout(this._spaceTimer);
+                // 如果是长按后的释放，阻止默认行为防止在清空后的输入框留下一个空格
+                if (this._wasLongPress) {
+                    e.preventDefault();
+                    this._wasLongPress = false;
+                }
             }
         });
 
