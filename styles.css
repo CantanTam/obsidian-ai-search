@@ -5,26 +5,18 @@
     backdrop-filter: none !important;
 }
 
-/* ---- Modal 容器：用 !important 彻底覆盖默认的白色/阴影/内边距 ---- */
+/* ---- Modal 容器 ---- */
 .aisearch-modal {
-    /* 先清掉所有默认样式 */
-    background: transparent !important;
-    background-color: transparent !important;
-    background-image: none !important;
-    box-shadow: none !important;
+    background: none !important;
     border: none !important;
-    padding-top: 1px;
-    padding-bottom: 10px;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding: 1px 10px 10px;
 
-    /* 自定义外观 */
     display: flex;
     flex-direction: column;
     border-radius: 12px;
     overflow: hidden;
 
-    /* 半透明磨砂核心：取主题变量并加透明度 */
+    /* 半透明磨砂核心 */
     background-color: color-mix(in srgb, var(--background-primary-alt) 80%, transparent) !important;
     backdrop-filter: blur(10px) saturate(180%);
     -webkit-backdrop-filter: blur(10px) saturate(180%);
@@ -37,11 +29,11 @@
 
 /* 搜索结果框文字的选中颜色 */
 .aisearch-modal ::selection {
-    background-color: rgba(0, 170, 0, 0.763); 
+    background-color: rgba(0, 170, 0, 0.763);
     color: #ffffff;
 }
 
-/* ---- 内部 content 容器（强制无默认边距） ---- */
+/* ---- 内部 content 容器 ---- */
 .aisearch-content {
     display: flex;
     flex-direction: column;
@@ -49,16 +41,12 @@
     padding: 0 !important;
 }
 
-/* ---- 输入框容器（仅用于上下间距，左右间距由 modal 统一控制） ---- */
+/* ---- 输入框容器 ---- */
 .aisearch-input-container {
-    padding-top: 1px;
-    padding-bottom: 5px;
-    /* 左右 padding 设为 0，让 border 对齐 modal 内边距 */
-    padding-left: 0;
-    padding-right: 0;
+    padding: 1px 0 5px;
 }
 
-/* ---- 输入行包装容器（为清除按钮提供相对定位参考） ---- */
+/* ---- 输入行包装容器 ---- */
 .aisearch-input-wrapper {
     position: relative;
     display: flex;
@@ -89,11 +77,11 @@
 /* ---- 输入框独有样式 ---- */
 .aisearch-input {
     font-size: 18px !important;
-    padding: 6px 30px 6px 10px;   /* 右侧 30px 给清除按钮腾出空间 */
-    resize: none;            /* 禁止用户手动拉伸 */
-    overflow-y: hidden;      /* 还没超过最大高度时，隐藏滚动条 */
-    min-height: 30px;        /* 初始高度 */
-    max-height: 200px;       /* 设置一个最大高度，防止输入框无限变大 */
+    padding: 6px 30px 6px 10px;
+    resize: none;
+    overflow-y: hidden;
+    min-height: 30px;
+    max-height: 200px;
     display: block;
 }
 
@@ -108,32 +96,30 @@
     color: var(--text-muted);
 }
 
-/* 清除按钮：绝对定位到输入框内部右侧 */
+/* 清除按钮 */
 .aisearch-clear-btn {
     position: absolute;
-    top: 20px; 
-    right: 8px; 
+    top: 20px;
+    right: 8px;
     transform: translateY(-50%);
     width: 22px;
     height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%; 
+    border-radius: 50%;
     background: var(--background-modifier-hover);
     color: var(--text-muted);
     cursor: pointer;
     transition: all 0.15s ease;
-    z-index: 1;             /* 确保在输入框文字之上 */
+    z-index: 1;
 }
 
-/* icon 本身大小调整（Obsidian svg） */
 .aisearch-clear-btn svg {
     width: 18px;
     height: 18px;
 }
 
-/* hover：变红 */
 .aisearch-clear-btn:hover {
     background: #ff6063;
     color: white;
@@ -157,6 +143,6 @@
 
 /* sendKey 反馈：输出框边框临时变绿 */
 .aisearch-result-area.send-flash {
-    border-color: #00cc66 !important;   /* 绿色 */
-    transition: border-color 0.2s ease; /* 平滑变色 */
+    border-color: #00cc66 !important;
+    transition: border-color 0.2s ease;
 }

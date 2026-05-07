@@ -311,15 +311,16 @@ class AISearchModal extends Modal {
                         ch: cursor.ch + selectedText.length
                     });
 
-                    // 给输出框添加闪烁类，1 秒后移除
-                    this.resultArea.classList.add('send-flash');
-                    setTimeout(() => {
-                        this.resultArea.classList.remove('send-flash');
-                        // 如果开启了自动关闭，颜色恢复后再关闭窗口
-                        if (this.plugin.settings.toClose) {
-                            this.close();
-                        }
-                    }, 1000);
+                    if (this.plugin.settings.toClose) {
+                        // 开启自动关闭时：直接关闭，不执行变色动画
+                        this.close();
+                    } else {
+                        // 未开启自动关闭：只显示边框变色反馈，不关闭
+                        this.resultArea.classList.add('send-flash');
+                        setTimeout(() => {
+                            this.resultArea.classList.remove('send-flash');
+                        }, 1000);
+                    }
                 }
                 return;
             }
