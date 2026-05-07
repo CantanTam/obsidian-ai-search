@@ -66,6 +66,7 @@
     user-select: text;
     cursor: text;
     line-height: 1.6;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .aisearch-input:focus,
@@ -144,5 +145,5 @@
 /* sendKey 反馈：输出框边框临时变绿 */
 .aisearch-result-area.send-flash {
     border-color: #00cc66 !important;
-    transition: border-color 0.2s ease;
+    box-shadow: 0 0 8px 2px rgba(0, 204, 102, 0.5) !important;
 }
