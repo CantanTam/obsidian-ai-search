@@ -209,8 +209,7 @@ class AISearchSettingTab extends PluginSettingTab {
     }
 }
 
-// 搜索框 (关键修改)
-// 搜索框（完全重写交互逻辑）
+// 搜索框（针对 Linux/Windows 输入法优化的 IJKL 选区版本）
 class AISearchModal extends Modal {
     constructor(app, plugin, editor) {
         super(app);
@@ -218,13 +217,16 @@ class AISearchModal extends Modal {
         this.inputEl = null;
         this.resultArea = null;
         this.editor = editor;
-        // 记录打开弹窗时的光标位置（用于后续插入文本）
         this.cursorPos = editor ? editor.getCursor() : null;
 
-        // 事件处理器引用，用于移除监听
+        // 保存结果区域的「干净内容」，用于恢复
+        this._cleanHTML = '';
+
+        // 事件处理器引用
         this._globalKeyHandler = null;
         this._resultKeyHandler = null;
         this._beforeInputHandler = null;
+        this._inputHandler = null;
         this._compositionHandler = null;
     }
 
@@ -232,12 +234,10 @@ class AISearchModal extends Modal {
         this.setupModalStyle();
         this.renderUI();
         this.bindEvents();
-
-        // 自动聚焦输入框
+        this._cleanHTML = this.resultArea.innerHTML;
         setTimeout(() => this.inputEl?.focus(), 50);
     }
 
-    // 1. 初始化容器样式
     setupModalStyle() {
         const { modalEl } = this;
         modalEl.style.width = `${this.plugin.settings.modalWidth}px`;
@@ -248,9 +248,7 @@ class AISearchModal extends Modal {
         this.contentEl.addClass('aisearch-content');
     }
 
-    // 2. 渲染静态 UI 组件
     renderUI() {
-        // 输入区域
         const inputContainer = this.contentEl.createDiv({ cls: 'aisearch-input-container' });
         const inputWrapper = inputContainer.createDiv({ cls: 'aisearch-input-wrapper' });
 
@@ -259,24 +257,28 @@ class AISearchModal extends Modal {
             attr: { placeholder: 'Shift + Enter 换行', rows: "1" }
         });
 
-        // 清除按钮
         const clearBtn = inputWrapper.createDiv({ cls: 'aisearch-clear-btn clickable-icon' });
         setIcon(clearBtn, 'cross');
         setTooltip(clearBtn, '清空输入', { placement: 'top' });
 
-        // 结果区域 (contenteditable，只读模式通过事件实现)
-        this.resultArea = this.contentEl.createDiv({ cls: 'aisearch-result-area' });
+        // 结果区域：设置为只读属性的 contenteditable
+        this.resultArea = this.contentEl.createDiv({
+            cls: 'aisearch-result-area',
+            attr: {
+                contenteditable: 'true',
+                tabindex: '0',
+                spellcheck: 'false',
+                autocomplete: 'off',
+                inputmode: 'none', // 移动端防御
+            }
+        });
         this.resultArea.setText('等待输入...');
-        this.resultArea.setAttribute('tabindex', '0');
-        this.resultArea.setAttribute('contenteditable', 'true');
 
-        // 按钮事件
         clearBtn.addEventListener('click', () => this.resetInput());
     }
 
-    // 3. 绑定事件（核心改造）
     bindEvents() {
-        // 输入框自动调整高度
+        // 输入框高度自动调整
         this.inputEl.addEventListener('input', () => {
             this.inputEl.style.height = 'auto';
             this.inputEl.style.height = `${this.inputEl.scrollHeight}px`;
@@ -291,19 +293,15 @@ class AISearchModal extends Modal {
             }
         });
 
-        // ========== 全局捕获：仅处理 triggerKey 和 Tab ==========
+        // ========== 全局：triggerKey 关闭、Tab 切换焦点 ==========
         this._globalKeyHandler = (e) => {
             const { settings } = this.plugin;
-
-            // 按下触发键：关闭弹窗
             if (e.key === settings.triggerKey) {
                 e.preventDefault();
                 e.stopPropagation();
                 this.close();
                 return;
             }
-
-            // Tab 键：在输入框和结果区域之间切换焦点
             if (e.key === 'Tab') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -316,18 +314,16 @@ class AISearchModal extends Modal {
         };
         this.modalEl.addEventListener('keydown', this._globalKeyHandler, true);
 
-        // ========== 结果区域键盘处理 ==========
+        // ========== 结果区域：核心方向键与选区逻辑 ==========
         this._resultKeyHandler = (e) => {
-            // 只处理焦点在结果区域内的事件
             if (!this.resultArea.contains(document.activeElement)) return;
 
             const { settings } = this.plugin;
             const { upKey, downKey, leftKey, rightKey, sendKey } = settings;
 
-            // 1. 允许所有 Ctrl/Meta 组合键（复制、粘贴等）
+            // 允许原生组合键（如 Ctrl+C）
             if (e.ctrlKey || e.metaKey) return;
 
-            // 2. 映射 IJKL 为方向键（使用 Selection API）
             const dirMap = {
                 [leftKey]:  { direction: 'backward', granularity: 'character' },
                 [rightKey]: { direction: 'forward',  granularity: 'character' },
@@ -335,24 +331,24 @@ class AISearchModal extends Modal {
                 [downKey]:  { direction: 'forward',  granularity: 'line' },
             };
 
+            // 使用 e.code 判定物理按键，不受输入法状态影响
             if (e.code in dirMap) {
                 e.preventDefault();
+                e.stopImmediatePropagation(); // 强行截断，不让输入法捕捉
+
                 const { direction, granularity } = dirMap[e.code];
-                const selection = window.getSelection();
-                if (selection.rangeCount > 0) {
-                    // shift 按下时扩展选区，否则移动光标
-                    selection.modify(
-                        e.shiftKey ? 'extend' : 'move',
-                        direction,
-                        granularity
-                    );
+                const sel = window.getSelection();
+                if (sel.rangeCount > 0) {
+                    // 显式根据 Shift 状态决定是 'extend' 还是 'move'
+                    const alterType = e.shiftKey ? 'extend' : 'move';
+                    sel.modify(alterType, direction, granularity);
                 }
                 return;
             }
 
-            // 3. 发送键（Space）：将选中文本插入到原始光标位置
             if (e.code === sendKey) {
                 e.preventDefault();
+                e.stopImmediatePropagation();
                 const selectedText = window.getSelection().toString();
                 if (selectedText && this.cursorPos && this.editor) {
                     this.editor.replaceRange(selectedText, this.cursorPos);
@@ -360,30 +356,98 @@ class AISearchModal extends Modal {
                 return;
             }
 
-            // 4. 阻止所有可见字符输入（字母、数字、符号等）
-            //    通过判断 key 的长度（单个字符键的 key 长度为 1，而功能键如 'Shift', 'ArrowLeft' 长度大于 1）
-            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+            // 阻止所有普通字符输入，防止在中文输入法状态下字符上屏
+            if (e.key.length === 1) {
                 e.preventDefault();
+                e.stopImmediatePropagation();
             }
-            // 真实的功能键（ArrowUp, Home, End, PageUp 等）不做任何阻止，保持默认行为
         };
-        this.resultArea.addEventListener('keydown', this._resultKeyHandler);
+        // 使用 capture 阶段 (true)，确保在输入法干预前拦截
+        this.resultArea.addEventListener('keydown', this._resultKeyHandler, true);
 
-        // ========== 彻底阻止 contenteditable 的文字写入（包括输入法） ==========
-        this._beforeInputHandler = (e) => {
-            e.preventDefault();
-        };
-        this.resultArea.addEventListener('beforeinput', this._beforeInputHandler);
-
-        // 额外安全措施：拦截 compositionstart 事件，避免输入法组合窗口弹出
+        // ========== 防御层：彻底屏蔽 IME 合成窗口 ==========
         this._compositionHandler = (e) => {
             e.preventDefault();
+            e.stopImmediatePropagation();
+            if (e.type === 'compositionstart') {
+                // 瞬间失去焦点再重新获得焦点，可以强行关闭已经弹出的输入法窗口
+                this.resultArea.blur();
+                this.resultArea.focus();
+            }
         };
-        this.resultArea.addEventListener('compositionstart', this._compositionHandler);
-        this.resultArea.addEventListener('compositionupdate', this._compositionHandler);
+        this.resultArea.addEventListener('compositionstart', this._compositionHandler, true);
+        this.resultArea.addEventListener('compositionupdate', this._compositionHandler, true);
+
+        // ========== 防御层：阻止任何形式的内容变更 ==========
+        this._beforeInputHandler = (e) => {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        };
+        this.resultArea.addEventListener('beforeinput', this._beforeInputHandler, true);
+
+        // ========== 兜底层：内容恢复机制 ==========
+        this._inputHandler = () => {
+            const sel = window.getSelection();
+            let startOffset = 0, endOffset = 0;
+            if (sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                startOffset = this._getTextOffset(range.startContainer, range.startOffset);
+                endOffset = this._getTextOffset(range.endContainer, range.endOffset);
+            }
+
+            this.resultArea.innerHTML = this._cleanHTML;
+
+            try {
+                const newRange = this._createRangeFromOffsets(startOffset, endOffset);
+                if (newRange) {
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                }
+            } catch (err) {
+                const fallbackRange = document.createRange();
+                fallbackRange.setStart(this.resultArea, 0);
+                fallbackRange.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(fallbackRange);
+            }
+        };
+        this.resultArea.addEventListener('input', this._inputHandler);
     }
 
-    // 4. 搜索业务逻辑（不变）
+    _getTextOffset(node, offset) {
+        let count = 0;
+        const walker = document.createTreeWalker(this.resultArea, NodeFilter.SHOW_TEXT, null, false);
+        let currentNode;
+        while ((currentNode = walker.nextNode())) {
+            if (currentNode === node) return count + offset;
+            count += currentNode.textContent.length;
+        }
+        return count;
+    }
+
+    _createRangeFromOffsets(start, end) {
+        if (start < 0 || end < start) return null;
+        const range = document.createRange();
+        let foundStart = false, foundEnd = false;
+        let count = 0;
+        const walker = document.createTreeWalker(this.resultArea, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while ((node = walker.nextNode())) {
+            const nodeLen = node.textContent.length;
+            if (!foundStart && count + nodeLen >= start) {
+                range.setStart(node, Math.min(start - count, nodeLen));
+                foundStart = true;
+            }
+            if (!foundEnd && count + nodeLen >= end) {
+                range.setEnd(node, Math.min(end - count, nodeLen));
+                foundEnd = true;
+                break;
+            }
+            count += nodeLen;
+        }
+        return (foundStart && foundEnd) ? range : null;
+    }
+
     async handleSearch() {
         const query = this.inputEl.value.trim();
         if (!query) return;
@@ -391,6 +455,7 @@ class AISearchModal extends Modal {
         const { apiKey, apiModel } = this.plugin.settings;
         if (!apiKey) {
             this.resultArea.setText("❌ 请先在插件设置中填写 API Key");
+            this._cleanHTML = this.resultArea.innerHTML;
             return;
         }
 
@@ -399,6 +464,7 @@ class AISearchModal extends Modal {
         const statusEl = this.resultArea.createDiv({ cls: 'aisearch-status' });
         statusEl.setText(`🚀 ${apiModel} 思考中...`);
         const responseEl = this.resultArea.createDiv({ cls: 'aisearch-response' });
+        this._cleanHTML = this.resultArea.innerHTML;
 
         try {
             const answer = await this.fetchAI(query);
@@ -407,12 +473,11 @@ class AISearchModal extends Modal {
         } catch (error) {
             statusEl.setText(`❌ 错误: ${this.getFriendlyErrorMessage(error.message)}`);
         }
+        this._cleanHTML = this.resultArea.innerHTML;
     }
 
-    // 5. API请求（不变）
     async fetchAI(query) {
         const { apiUrl, apiKey, apiModel, apiMaxToken, apiTemperature } = this.plugin.settings;
-
         const response = await requestUrl({
             url: apiUrl,
             method: 'POST',
@@ -431,13 +496,11 @@ class AISearchModal extends Modal {
                 stream: false
             })
         });
-
         const result = response.json;
         if (result.error) throw new Error(result.error.message);
         return result.choices[0].message.content;
     }
 
-    // 辅助方法
     resetInput() {
         this.inputEl.value = '';
         this.inputEl.style.height = 'auto';
@@ -452,19 +515,13 @@ class AISearchModal extends Modal {
     }
 
     onClose() {
-        // 移除所有事件监听，防止内存泄漏
-        if (this._globalKeyHandler) {
-            this.modalEl.removeEventListener('keydown', this._globalKeyHandler, true);
-        }
-        if (this._resultKeyHandler) {
-            this.resultArea.removeEventListener('keydown', this._resultKeyHandler);
-        }
-        if (this._beforeInputHandler) {
-            this.resultArea.removeEventListener('beforeinput', this._beforeInputHandler);
-        }
+        if (this._globalKeyHandler)   this.modalEl.removeEventListener('keydown', this._globalKeyHandler, true);
+        if (this._resultKeyHandler)   this.resultArea.removeEventListener('keydown', this._resultKeyHandler, true);
+        if (this._beforeInputHandler) this.resultArea.removeEventListener('beforeinput', this._beforeInputHandler, true);
+        if (this._inputHandler)       this.resultArea.removeEventListener('input', this._inputHandler);
         if (this._compositionHandler) {
-            this.resultArea.removeEventListener('compositionstart', this._compositionHandler);
-            this.resultArea.removeEventListener('compositionupdate', this._compositionHandler);
+            this.resultArea.removeEventListener('compositionstart', this._compositionHandler, true);
+            this.resultArea.removeEventListener('compositionupdate', this._compositionHandler, true);
         }
         this.contentEl.empty();
     }
