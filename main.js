@@ -224,48 +224,11 @@ class AISearchModal extends Modal {
     }
 
     onOpen() {
-        this.injectStyles();
+        // 不再调用 injectStyles，样式已由 styles.css 接管
         this.setupModalStyle();
         this.renderUI();
         this.bindEvents();
         setTimeout(() => this.inputEl?.focus(), 50);
-    }
-
-    // 必要的样式注入
-    injectStyles() {
-        if (document.getElementById('aisearch-plugin-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'aisearch-plugin-styles';
-        style.textContent = `
-            .aisearch-result-area {
-                position: relative;
-                width: 100%;
-                height: calc(100% - 100px);
-                overflow-y: auto;
-                background: var(--background-primary);
-                border: 1px solid var(--background-modifier-border);
-                border-radius: 4px;
-                padding: 15px;
-                user-select: text;
-                cursor: text;
-                line-height: 1.6;
-                outline: none;
-            }
-            .aisearch-caret {
-                position: absolute;
-                width: 2px;
-                background-color: var(--text-accent);
-                pointer-events: none;
-                display: none;
-                z-index: 100;
-                animation: aisearch-blink 1s infinite;
-            }
-            @keyframes aisearch-blink {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
     }
 
     // 窗口尺寸和样式

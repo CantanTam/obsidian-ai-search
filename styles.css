@@ -13,7 +13,7 @@
     background-image: none !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 0 !important;
+    padding: 10px !important;
 
     /* 自定义外观 */
     display: flex;
@@ -52,28 +52,28 @@
     padding-right: 10px;
     padding-left: 10px;
     padding-bottom: 5px;
-    border-bottom: 1px solid rgba(76, 140, 230, 1);
+    /*border-bottom: 1px solid rgba(76, 140, 230, 1); */
 }
 
-/* input + 按钮横向布局 */
+/* input + 按钮横向布局，改为相对定位容器 */
 .aisearch-input-wrapper {
+    position: relative;   /* 新增：让清除按钮相对于此定位 */
     display: flex;
     align-items: center;
-    gap: 6px;
 }
 
 /* ---- 输入框 ---- */
 .aisearch-input {
     width: 100%;
     background: transparent !important;
-    border: none !important;
+    border: 1px solid var(--background-modifier-border);
     box-shadow: none !important;
     color: var(--text-normal);
     font-size: 18px !important;
     padding-top: 6px;
     padding-bottom: 6px;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 6px;
+    padding-right: 30px;   /* 修改：给右侧留出按钮空间 */
     outline: none;
     box-sizing: border-box;
 
@@ -85,8 +85,12 @@
     display: block;
 }
 
-/* 清除按钮 */
+/* 清除按钮：绝对定位到输入框内部右侧 */
 .aisearch-clear-btn {
+    position: absolute;
+    right: 8px;              /* 距离输入框右边框的距离 */
+    top: 50%;
+    transform: translateY(-50%);
     width: 22px;
     height: 22px;
     display: flex;
@@ -97,6 +101,7 @@
     color: var(--text-muted);
     cursor: pointer;
     transition: all 0.15s ease;
+    z-index: 1;             /* 确保在输入框文字之上 */
 }
 
 /* icon 本身大小调整（Obsidian svg） */
@@ -111,11 +116,37 @@
     color: white;
 }
 
-/* ---- 结果展示区 ---- */
+/* ---- 结果展示区（整合原有样式 + 原 main.js 注入的样式） ---- */
 .aisearch-result-area {
     flex: 1;
-    padding: 20px;
+    position: relative;
+    width: 100%;
+    height: calc(100% - 100px);
     overflow-y: auto;
+    background: transparent !important;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 10px;
     color: var(--text-muted);
     font-size: 15px;
+    user-select: text;
+    cursor: text;
+    line-height: 1.6;
+    outline: none;
+}
+
+/* 虚拟光标（原 main.js 注入） */
+.aisearch-caret {
+    position: absolute;
+    width: 2px;
+    background-color: var(--text-accent);
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+    animation: aisearch-blink 1s infinite;
+}
+
+@keyframes aisearch-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }
