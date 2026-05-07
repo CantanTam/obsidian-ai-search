@@ -70,7 +70,10 @@
     box-shadow: none !important;
     color: var(--text-normal);
     font-size: 18px !important;
-    padding: 10px 10px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    padding-left: 10px;
+    padding-right: 10px;
     outline: none;
     box-sizing: border-box;
 

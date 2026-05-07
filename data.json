@@ -12,5 +12,6 @@
   "leftKey": "KeyJ",
   "rightKey": "KeyL",
   "sendKey": "Space",
+  "selectKey": "KeyE",
   "undefined": "Space"
 }
