@@ -217,6 +217,7 @@ class AISearchModal extends Modal {
 
         // 状态变量
         this.virtualCaret = null;           // 虚拟光标元素
+        this.savedRange = null;             // 保存失焦时的选区
 
         // 事件引用（用于解绑）
         this._globalKeyHandler = null;
@@ -302,7 +303,14 @@ class AISearchModal extends Modal {
                 e.stopPropagation();
                 if (document.activeElement === this.inputEl) {
                     this.resultArea.focus();
-                    this.initSelection();
+                    // 恢复之前保存的选区（如果有），否则初始化到开头
+                    if (this.savedRange) {
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(this.savedRange);
+                    } else {
+                        this.initSelection();
+                    }
                     this.updateCaret();
                 } else {
                     this.inputEl.focus();
@@ -310,6 +318,11 @@ class AISearchModal extends Modal {
             }
         };
         this.modalEl.addEventListener('keydown', this._globalKeyHandler, true);
+
+        // 结果区失去焦点时隐藏光标并保存选区
+        this.resultArea.addEventListener('blur', () => {
+            this.hideCaretAndSave();
+        });
 
         // 结果区键盘处理（仅 Shift + IJKL 扩展选区）
         this._resultKeyHandler = (e) => {
@@ -358,6 +371,23 @@ class AISearchModal extends Modal {
         // 滚动或鼠标点击后更新虚拟光标
         this.resultArea.addEventListener('scroll', () => this.updateCaret());
         this.resultArea.addEventListener('mousedown', () => setTimeout(() => this.updateCaret(), 10));
+    }
+
+    // 隐藏光标并保存当前选区
+    hideCaretAndSave() {
+        this.virtualCaret.style.display = 'none';
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0).cloneRange();
+            // 确保选区在结果区内
+            if (this.resultArea.contains(range.commonAncestorContainer)) {
+                this.savedRange = range;
+            } else {
+                this.savedRange = null;
+            }
+        } else {
+            this.savedRange = null;
+        }
     }
 
     // 初始化选区到结果区开头
@@ -432,6 +462,8 @@ class AISearchModal extends Modal {
             const answer = await this.fetchAI(query);
             statusEl.remove();
             await MarkdownRenderer.renderMarkdown(answer, responseEl, '', this.plugin);
+            // 清除保存的选区，重置光标到内容开头
+            this.savedRange = null;
             this.resultArea.focus();
             this.initSelection();
             this.updateCaret();
