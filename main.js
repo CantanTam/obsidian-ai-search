@@ -372,6 +372,13 @@ class AISearchModal extends Modal {
 
     async _search() {
         const query = this.inputEl.value.trim();
+
+        if (query) {
+            this.inputEl.placeholder = query;
+            this.inputEl.value = '';
+            this.inputEl.style.height = 'auto';
+        }
+
         if (!query) return;
 
         const { apiKey, apiModel } = this.plugin.settings;

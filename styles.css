@@ -37,7 +37,7 @@
 
 /* 搜索结果框文字的选中颜色 */
 .aisearch-modal ::selection {
-    background-color: #00aa00ff; 
+    background-color: rgba(0, 170, 0, 0.763); 
     color: #ffffff;
 }
 
