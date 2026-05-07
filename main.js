@@ -294,11 +294,18 @@ class AISearchModal extends Modal {
             }
             if (e.code === settings.sendKey) {
                 e.preventDefault();
-                const selText = window.getSelection().toString();
-                if (selText && this.editor) {
-                    this.editor.replaceRange(selText, this.cursorPos);
+                const selectedText = window.getSelection().toString();
+                if (selectedText && this.editor) {
+                    const cursor = this.editor.getCursor();                // 获取实时光标
+                    this.editor.replaceRange(selectedText, cursor);        // 在光标处插入
+                    // 将光标移动到插入文本的末尾
+                    this.editor.setCursor({
+                        line: cursor.line,
+                        ch: cursor.ch + selectedText.length
+                    });
                     this.close();
                 }
+                return;
             }
         };
         this.resultArea.addEventListener('keydown', this._resultKeyHandler, true);
