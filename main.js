@@ -336,42 +336,18 @@ class AISearchModal extends Modal {
                     this._initSelection();
                 }
 
+                // 保存移动前的选区，用于后续可能的撤销
+                const prevRange = sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
                 const [dir, gran] = dirMap[e.code];
+                sel.modify(e.shiftKey ? 'extend' : 'move', dir, gran);
 
-                // ---- 边界预判 ----
-                // 获取当前焦点（塌陷选区）的位置
-                const testRange = document.createRange();
-                if (sel.rangeCount > 0) {
-                    const currentFocusNode = sel.focusNode;
-                    const currentFocusOffset = sel.focusOffset;
-                    if (this.resultArea.contains(currentFocusNode)) {
-                        testRange.setStart(currentFocusNode, currentFocusOffset);
-                        testRange.collapse(true);
-                        const rect = testRange.getBoundingClientRect();
-                        const areaRect = this.resultArea.getBoundingClientRect();
-
-                        if (gran === 'line') {
-                            // 上下移动：检查是否已在顶部/底部
-                            if (dir === 'backward' && rect.top <= areaRect.top + 1) {
-                                return; // 已在顶部，不能再向上
-                            }
-                            if (dir === 'forward' && rect.bottom >= areaRect.bottom - 1) {
-                                return; // 已在底部，不能再向下
-                            }
-                        } else if (gran === 'character') {
-                            // 左右移动：检查是否已在左/右边缘
-                            if (dir === 'backward' && rect.left <= areaRect.left + 1) {
-                                return;
-                            }
-                            if (dir === 'forward' && rect.right >= areaRect.right - 1) {
-                                return;
-                            }
-                        }
+                // 如果移动后焦点离开了 resultArea（比如跑到输入框），则恢复到移动前
+                if (sel.rangeCount > 0 && !this.resultArea.contains(sel.focusNode)) {
+                    if (prevRange) {
+                        sel.removeAllRanges();
+                        sel.addRange(prevRange);
                     }
                 }
-                // --------------------
-
-                sel.modify(e.shiftKey ? 'extend' : 'move', dir, gran);
 
                 setTimeout(() => {
                     this._ensureVisible();
