@@ -335,16 +335,48 @@ class AISearchModal extends Modal {
                 if (sel.rangeCount === 0 || !this.resultArea.contains(sel.anchorNode)) {
                     this._initSelection();
                 }
+
                 const [dir, gran] = dirMap[e.code];
+
+                // ---- 边界预判 ----
+                // 获取当前焦点（塌陷选区）的位置
+                const testRange = document.createRange();
+                if (sel.rangeCount > 0) {
+                    const currentFocusNode = sel.focusNode;
+                    const currentFocusOffset = sel.focusOffset;
+                    if (this.resultArea.contains(currentFocusNode)) {
+                        testRange.setStart(currentFocusNode, currentFocusOffset);
+                        testRange.collapse(true);
+                        const rect = testRange.getBoundingClientRect();
+                        const areaRect = this.resultArea.getBoundingClientRect();
+
+                        if (gran === 'line') {
+                            // 上下移动：检查是否已在顶部/底部
+                            if (dir === 'backward' && rect.top <= areaRect.top + 1) {
+                                return; // 已在顶部，不能再向上
+                            }
+                            if (dir === 'forward' && rect.bottom >= areaRect.bottom - 1) {
+                                return; // 已在底部，不能再向下
+                            }
+                        } else if (gran === 'character') {
+                            // 左右移动：检查是否已在左/右边缘
+                            if (dir === 'backward' && rect.left <= areaRect.left + 1) {
+                                return;
+                            }
+                            if (dir === 'forward' && rect.right >= areaRect.right - 1) {
+                                return;
+                            }
+                        }
+                    }
+                }
+                // --------------------
+
                 sel.modify(e.shiftKey ? 'extend' : 'move', dir, gran);
-                
-                // --- 修改这里 ---
-                // 使用 setTimeout(..., 0) 确保在选区改变生效后再计算位置
+
                 setTimeout(() => {
                     this._ensureVisible();
                     this._updateCaret();
                 }, 0);
-                // ----------------
                 return;
             }
             if (e.code === settings.sendKey) {
