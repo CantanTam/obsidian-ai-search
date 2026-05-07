@@ -1,292 +1,292 @@
 "use strict";
 
 const {
-    Plugin,
-    Modal,
-    setIcon,
-    PluginSettingTab,
-    Setting,
-    MarkdownRenderer,
-    requestUrl,
-    setTooltip,
-    MarkdownView,
+    Plugin,
+    Modal,
+    setIcon,
+    PluginSettingTab,
+    Setting,
+    MarkdownRenderer,
+    requestUrl,
+    setTooltip,
+    MarkdownView,
 } = require('obsidian');
 
 // 默认设置
 const DEFAULT_SETTINGS = {
-    modalWidth: 600,
-    modalHeight: 400,
-    triggerKey: 'Alt',
-    apiUrl: '',
-    apiKey: '',
-    apiModel: '',
-    apiMaxToken: 2048,
-    apiTemperature: 0.8,
-    upKey: 'KeyI',
-    downKey: 'KeyK',
-    leftKey: 'KeyJ',
-    rightKey: 'KeyL',
-    sendKey: 'Space',
-    toClose: false, 
+    modalWidth: 600,
+    modalHeight: 400,
+    triggerKey: 'Alt',
+    apiUrl: '',
+    apiKey: '',
+    apiModel: '',
+    apiMaxToken: 2048,
+    apiTemperature: 0.8,
+    upKey: 'KeyI',
+    downKey: 'KeyK',
+    leftKey: 'KeyJ',
+    rightKey: 'KeyL',
+    sendKey: 'Space',
+    toClose: false, 
 };
 
 // 主插件类
 class AISearchPlugin extends Plugin {
-    async onload() {
-        await this.loadSettings();
-        this.lastTriggerTime = 0;
-        this.currentModal = null;
-        this.registerDomEvent(document, 'keydown', this._onTriggerKey.bind(this));
-        this.addSettingTab(new AISearchSettingTab(this.app, this));
-    }
+    async onload() {
+        await this.loadSettings();
+        this.lastTriggerTime = 0;
+        this.currentModal = null;
+        this.registerDomEvent(document, 'keydown', this._onTriggerKey.bind(this));
+        this.addSettingTab(new AISearchSettingTab(this.app, this));
+    }
 
-    async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-    }
+    async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    }
 
-    async saveSettings() {
-        await this.saveData(this.settings);
-    }
+    async saveSettings() {
+        await this.saveData(this.settings);
+    }
 
-    _onTriggerKey(evt) {
-        if (evt.key !== this.settings.triggerKey) return;
+    _onTriggerKey(evt) {
+        if (evt.key !== this.settings.triggerKey) return;
 
-        if (this.currentModal) {
-            this.currentModal.close();
-            this.currentModal = null;
-            this.lastTriggerTime = 0;
-            return;
-        }
+        if (this.currentModal) {
+            this.currentModal.close();
+            this.currentModal = null;
+            this.lastTriggerTime = 0;
+            return;
+        }
 
-        const now = Date.now();
-        const diff = now - this.lastTriggerTime;
-        if (diff > 0 && diff < 300) {
-            const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-            const editor = activeView?.editor ?? null;
-            const modal = new AISearchModal(this.app, this, editor);
-            modal.open();
-            this.currentModal = modal;
-            this.lastTriggerTime = 0;
-        } else {
-            this.lastTriggerTime = now;
-        }
-    }
+        const now = Date.now();
+        const diff = now - this.lastTriggerTime;
+        if (diff > 0 && diff < 300) {
+            const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            const editor = activeView?.editor ?? null;
+            const modal = new AISearchModal(this.app, this, editor);
+            modal.open();
+            this.currentModal = modal;
+            this.lastTriggerTime = 0;
+        } else {
+            this.lastTriggerTime = now;
+        }
+    }
 }
 
 // 设置面板 (使用辅助函数消除重复)
 class AISearchSettingTab extends PluginSettingTab {
-    constructor(app, plugin) {
-        super(app, plugin);
-        this.plugin = plugin;
-    }
+    constructor(app, plugin) {
+        super(app, plugin);
+        this.plugin = plugin;
+    }
 
-    display() {
-        const { containerEl } = this;
-        containerEl.empty();
-        this.containerEl = containerEl;
+    display() {
+        const { containerEl } = this;
+        containerEl.empty();
+        this.containerEl = containerEl;
 
-        containerEl.createEl('h2', { text: '快捷键设置' });
+        containerEl.createEl('h2', { text: '快捷键设置' });
 
-        new Setting(containerEl)
-            .setName('触发按键')
-            .addDropdown(d => d
-                .addOption('Alt', 'Alt')
-                .addOption('Control', 'Ctrl')
-                .setValue(this.plugin.settings.triggerKey)
-                .onChange(async v => {
-                    this.plugin.settings.triggerKey = v;
-                    await this.plugin.saveSettings();
-                }));
+        new Setting(containerEl)
+            .setName('触发按键')
+            .addDropdown(d => d
+                .addOption('Alt', 'Alt')
+                .addOption('Control', 'Ctrl')
+                .setValue(this.plugin.settings.triggerKey)
+                .onChange(async v => {
+                    this.plugin.settings.triggerKey = v;
+                    await this.plugin.saveSettings();
+                }));
 
-        this._addKeyBinding('模拟Up键', 'upKey');
-        this._addKeyBinding('模拟Down键', 'downKey');
-        this._addKeyBinding('模拟Left键', 'leftKey');
-        this._addKeyBinding('模拟Right键', 'rightKey');
-        this._addKeyBinding('发送按键', 'sendKey');
-        this._addToggle('发送后自动关闭', '发送操作后是否立即关闭搜索窗口', 'toClose');
+        this._addKeyBinding('模拟Up键', 'upKey');
+        this._addKeyBinding('模拟Down键', 'downKey');
+        this._addKeyBinding('模拟Left键', 'leftKey');
+        this._addKeyBinding('模拟Right键', 'rightKey');
+        this._addKeyBinding('发送按键', 'sendKey');
+        this._addToggle('发送后自动关闭', '发送操作后是否立即关闭搜索窗口', 'toClose');
 
-        containerEl.createEl('h2', { text: '弹窗大小设置' });
-        this._addSlider('窗口宽度', '', 'modalWidth', [300, 1200, 10]);
-        this._addSlider('窗口高度', '', 'modalHeight', [200, 800, 10]);
+        containerEl.createEl('h2', { text: '弹窗大小设置' });
+        this._addSlider('窗口宽度', '', 'modalWidth', [300, 1200, 10]);
+        this._addSlider('窗口高度', '', 'modalHeight', [200, 800, 10]);
 
-        containerEl.createEl('h2', { text: 'API设置' });
-        this._addText('服务器地址', '', 'apiUrl');
-        this._addText('API Key', '', 'apiKey', 'sk-...');
-        this._addText('模型类型', '', 'apiModel');
-        this._addSlider('输出长度上限', '数值越小越节约token数', 'apiMaxToken', [100, 5000, 100]);
-        this._addSlider('采样温度', '数值越小越精准，数值越大越有创意', 'apiTemperature', [0, 2, 0.1]);
-    }
+        containerEl.createEl('h2', { text: 'API设置' });
+        this._addText('服务器地址', '', 'apiUrl');
+        this._addText('API Key', '', 'apiKey', 'sk-...');
+        this._addText('模型类型', '', 'apiModel');
+        this._addSlider('输出长度上限', '数值越小越节约token数', 'apiMaxToken', [100, 5000, 100]);
+        this._addSlider('采样温度', '数值越小越精准，数值越大越有创意', 'apiTemperature', [0, 2, 0.1]);
+    }
 
-    _addKeyBinding(name, key) {
-        new Setting(this.containerEl)
-            .setName(name)
-            .addText(t => {
-                const inp = t.inputEl;
-                inp.value = this.plugin.settings[key];
-                Object.assign(inp.style, { cursor: 'pointer', textAlign: 'center', width: '100px' });
-                inp.addEventListener('keydown', async e => {
-                    e.preventDefault();
-                    const code = e.code;
-                    t.setValue(code);
-                    this.plugin.settings[key] = code;
-                    await this.plugin.saveSettings();
-                    inp.blur();
-                });
-            });
-    }
+    _addKeyBinding(name, key) {
+        new Setting(this.containerEl)
+            .setName(name)
+            .addText(t => {
+                const inp = t.inputEl;
+                inp.value = this.plugin.settings[key];
+                Object.assign(inp.style, { cursor: 'pointer', textAlign: 'center', width: '100px' });
+                inp.addEventListener('keydown', async e => {
+                    e.preventDefault();
+                    const code = e.code;
+                    t.setValue(code);
+                    this.plugin.settings[key] = code;
+                    await this.plugin.saveSettings();
+                    inp.blur();
+                });
+            });
+    }
 
-    _addToggle(name, desc, key) {
-        new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(desc)
-            .addToggle(t => t
-                .setValue(this.plugin.settings[key])
-                .onChange(async v => {
-                    this.plugin.settings[key] = v;
-                    await this.plugin.saveSettings();
-                }));
-    }
+    _addToggle(name, desc, key) {
+        new Setting(this.containerEl)
+            .setName(name)
+            .setDesc(desc)
+            .addToggle(t => t
+                .setValue(this.plugin.settings[key])
+                .onChange(async v => {
+                    this.plugin.settings[key] = v;
+                    await this.plugin.saveSettings();
+                }));
+    }
 
-    _addSlider(name, desc, key, limits) {
-        new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(desc)
-            .addSlider(s => s
-                .setLimits(...limits)
-                .setValue(this.plugin.settings[key])
-                .setDynamicTooltip()
-                .onChange(async v => {
-                    this.plugin.settings[key] = v;
-                    await this.plugin.saveSettings();
-                }));
-    }
+    _addSlider(name, desc, key, limits) {
+        new Setting(this.containerEl)
+            .setName(name)
+            .setDesc(desc)
+            .addSlider(s => s
+                .setLimits(...limits)
+                .setValue(this.plugin.settings[key])
+                .setDynamicTooltip()
+                .onChange(async v => {
+                    this.plugin.settings[key] = v;
+                    await this.plugin.saveSettings();
+                }));
+    }
 
-    _addText(name, desc, key, placeholder = '') {
-        new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(desc)
-            .addText(t => t
-                .setPlaceholder(placeholder)
-                .setValue(this.plugin.settings[key])
-                .onChange(async v => {
-                    this.plugin.settings[key] = v;
-                    await this.plugin.saveSettings();
-                }));
-    }
+    _addText(name, desc, key, placeholder = '') {
+        new Setting(this.containerEl)
+            .setName(name)
+            .setDesc(desc)
+            .addText(t => t
+                .setPlaceholder(placeholder)
+                .setValue(this.plugin.settings[key])
+                .onChange(async v => {
+                    this.plugin.settings[key] = v;
+                    await this.plugin.saveSettings();
+                }));
+    }
 }
 
 // 搜索弹窗
 class AISearchModal extends Modal {
-    constructor(app, plugin, editor) {
-        super(app);
-        this.plugin = plugin;
-        this.editor = editor;
-        this.cursorPos = editor?.getCursor() ?? null;
-        this.virtualCaret = null;
-        this.savedRange = null;
-        this._globalKeyHandler = null;
-        this._resultKeyHandler = null;
-    }
+    constructor(app, plugin, editor) {
+        super(app);
+        this.plugin = plugin;
+        this.editor = editor;
+        this.cursorPos = editor?.getCursor() ?? null;
+        this.virtualCaret = null;
+        this.savedRange = null;
+        this._globalKeyHandler = null;
+        this._resultKeyHandler = null;
+    }
 
-    onOpen() {
-        this._setupStyle();
-        this._render();
-        this._bindEvents();
-        setTimeout(() => this.inputEl?.focus(), 50);
-    }
+    onOpen() {
+        this._setupStyle();
+        this._render();
+        this._bindEvents();
+        setTimeout(() => this.inputEl?.focus(), 50);
+    }
 
-    _setupStyle() {
-        const { modalEl, contentEl } = this;
-        modalEl.style.width = `${this.plugin.settings.modalWidth}px`;
-        modalEl.style.height = `${this.plugin.settings.modalHeight}px`;
-        modalEl.querySelector('.modal-close-button')?.remove();
-        modalEl.parentElement.addClass('aisearch-overlay');
-        modalEl.addClass('aisearch-modal');
-        contentEl.addClass('aisearch-content');
-    }
+    _setupStyle() {
+        const { modalEl, contentEl } = this;
+        modalEl.style.width = `${this.plugin.settings.modalWidth}px`;
+        modalEl.style.height = `${this.plugin.settings.modalHeight}px`;
+        modalEl.querySelector('.modal-close-button')?.remove();
+        modalEl.parentElement.addClass('aisearch-overlay');
+        modalEl.addClass('aisearch-modal');
+        contentEl.addClass('aisearch-content');
+    }
 
-    _render() {
-        const { contentEl } = this;
-        const inputContainer = contentEl.createDiv({ cls: 'aisearch-input-container' });
-        const inputWrapper = inputContainer.createDiv({ cls: 'aisearch-input-wrapper' });
+    _render() {
+        const { contentEl } = this;
+        const inputContainer = contentEl.createDiv({ cls: 'aisearch-input-container' });
+        const inputWrapper = inputContainer.createDiv({ cls: 'aisearch-input-wrapper' });
 
-        this.inputEl = inputWrapper.createEl('textarea', {
-            cls: 'aisearch-input',
-            attr: { placeholder: 'Shift + Enter 换行', rows: '1' }
-        });
+        this.inputEl = inputWrapper.createEl('textarea', {
+            cls: 'aisearch-input',
+            attr: { placeholder: 'Shift + Enter 换行', rows: '1' }
+        });
 
-        const clearBtn = inputWrapper.createDiv({ cls: 'aisearch-clear-btn clickable-icon' });
-        setIcon(clearBtn, 'cross');
-        setTooltip(clearBtn, '清空输入', { placement: 'top' });
+        const clearBtn = inputWrapper.createDiv({ cls: 'aisearch-clear-btn clickable-icon' });
+        setIcon(clearBtn, 'cross');
+        setTooltip(clearBtn, '清空输入', { placement: 'top' });
 
-        this.resultArea = contentEl.createDiv({
-            cls: 'aisearch-result-area',
-            attr: { tabindex: '0', contenteditable: 'false' }
-        });
-        this.virtualCaret = this.resultArea.createDiv({ cls: 'aisearch-caret' });
-        this.resultArea.createDiv({
-            text: '等待输入...',
-            attr: { style: 'color: var(--text-muted); opacity: 0.5;' }
-        });
+        this.resultArea = contentEl.createDiv({
+            cls: 'aisearch-result-area',
+            attr: { tabindex: '0', contenteditable: 'false' }
+        });
+        this.virtualCaret = this.resultArea.createDiv({ cls: 'aisearch-caret' });
+        this.resultArea.createDiv({
+            text: '等待输入...',
+            attr: { style: 'color: var(--text-muted); opacity: 0.5;' }
+        });
 
-        clearBtn.addEventListener('click', () => {
-            this.inputEl.value = '';
-            this.inputEl.style.height = 'auto';
-            this.inputEl.focus();
-        });
-    }
+        clearBtn.addEventListener('click', () => {
+            this.inputEl.value = '';
+            this.inputEl.style.height = 'auto';
+            this.inputEl.focus();
+        });
+    }
 
-    _bindEvents() {
-        this.inputEl.addEventListener('input', () => {
-            this.inputEl.style.height = 'auto';
-            this.inputEl.style.height = `${this.inputEl.scrollHeight}px`;
-        });
+    _bindEvents() {
+        this.inputEl.addEventListener('input', () => {
+            this.inputEl.style.height = 'auto';
+            this.inputEl.style.height = `${this.inputEl.scrollHeight}px`;
+        });
 
-        this.inputEl.addEventListener('keydown', e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this._search();
-            }
-        });
+        this.inputEl.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this._search();
+            }
+        });
 
-        this._globalKeyHandler = e => {
-            if (e.key === this.plugin.settings.triggerKey) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.close();
-                return;
-            }
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                e.stopPropagation();
-                if (document.activeElement === this.inputEl) {
-                    this.resultArea.focus();
-                    const sel = window.getSelection();
-                    if (this.savedRange) {
-                        sel.removeAllRanges();
-                        sel.addRange(this.savedRange);
-                    } else {
-                        this._initSelection();
-                    }
-                    this._updateCaret();
-                } else {
-                    this.inputEl.focus();
-                }
-            }
-        };
-        this.modalEl.addEventListener('keydown', this._globalKeyHandler, true);
+        this._globalKeyHandler = e => {
+            if (e.key === this.plugin.settings.triggerKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.close();
+                return;
+            }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                e.stopPropagation();
+                if (document.activeElement === this.inputEl) {
+                    this.resultArea.focus();
+                    const sel = window.getSelection();
+                    if (this.savedRange) {
+                        sel.removeAllRanges();
+                        sel.addRange(this.savedRange);
+                    } else {
+                        this._initSelection();
+                    }
+                    this._updateCaret();
+                } else {
+                    this.inputEl.focus();
+                }
+            }
+        };
+        this.modalEl.addEventListener('keydown', this._globalKeyHandler, true);
 
-        this.resultArea.addEventListener('blur', () => this._hideCaretAndSave());
+        this.resultArea.addEventListener('blur', () => this._hideCaretAndSave());
 
-        this._resultKeyHandler = e => {
-            if (document.activeElement !== this.resultArea) return;
-            const { settings } = this.plugin;
-            const dirMap = {
-                [settings.leftKey]:  ['backward', 'character'],
-                [settings.rightKey]: ['forward', 'character'],
-                [settings.upKey]:    ['backward', 'line'],
-                [settings.downKey]:  ['forward', 'line'],
-            };
+        this._resultKeyHandler = e => {
+            if (document.activeElement !== this.resultArea) return;
+            const { settings } = this.plugin;
+            const dirMap = {
+                [settings.leftKey]:  ['backward', 'character'],
+                [settings.rightKey]: ['forward', 'character'],
+                [settings.upKey]:    ['backward', 'line'],
+                [settings.downKey]:  ['forward', 'line'],
+            };
             if (e.code in dirMap) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
@@ -296,72 +296,89 @@ class AISearchModal extends Modal {
                 }
                 const [dir, gran] = dirMap[e.code];
                 sel.modify(e.shiftKey ? 'extend' : 'move', dir, gran);
-                this._updateCaret();
-                this._ensureVisible();
+                
+                // --- 修改这里 ---
+                // 使用 setTimeout(..., 0) 确保在选区改变生效后再计算位置
+                setTimeout(() => {
+                    this._ensureVisible();
+                    this._updateCaret();
+                }, 0);
+                // ----------------
                 return;
             }
-            if (e.code === settings.sendKey) {
-                e.preventDefault();
-                const selectedText = window.getSelection().toString();
-                if (selectedText && this.editor) {
-                    const cursor = this.editor.getCursor();
-                    this.editor.replaceRange(selectedText, cursor);
-                    this.editor.setCursor({
-                        line: cursor.line,
-                        ch: cursor.ch + selectedText.length
-                    });
+            if (e.code === settings.sendKey) {
+                e.preventDefault();
+                const selectedText = window.getSelection().toString();
+                if (selectedText && this.editor) {
+                    const cursor = this.editor.getCursor();
+                    this.editor.replaceRange(selectedText, cursor);
+                    this.editor.setCursor({
+                        line: cursor.line,
+                        ch: cursor.ch + selectedText.length
+                    });
 
-                    if (this.plugin.settings.toClose) {
-                        // 开启自动关闭时：直接关闭，不执行变色动画
-                        this.close();
-                    } else {
-                        // 未开启自动关闭：只显示边框变色反馈，不关闭
-                        this.resultArea.classList.add('send-flash');
-                        setTimeout(() => {
-                            this.resultArea.classList.remove('send-flash');
-                        }, 1000);
-                    }
-                }
-                return;
-            }
-        };
-        this.resultArea.addEventListener('keydown', this._resultKeyHandler, true);
-        this.resultArea.addEventListener('scroll', () => this._updateCaret());
-        this.resultArea.addEventListener('mousedown', () => setTimeout(() => this._updateCaret(), 10));
-    }
+                    if (this.plugin.settings.toClose) {
+                        // 开启自动关闭时：直接关闭，不执行变色动画
+                        this.close();
+                    } else {
+                        // 未开启自动关闭：只显示边框变色反馈，不关闭
+                        this.resultArea.classList.add('send-flash');
+                        setTimeout(() => {
+                            this.resultArea.classList.remove('send-flash');
+                        }, 1000);
+                    }
+                }
+                return;
+            }
+        };
+        this.resultArea.addEventListener('keydown', this._resultKeyHandler, true);
+        this.resultArea.addEventListener('scroll', () => this._updateCaret());
+        this.resultArea.addEventListener('mousedown', () => {
+            setTimeout(() => {
+                this._updateCaret();
+                requestAnimationFrame(() => this._ensureVisible());
+            }, 10);
+        });
+    }
 
-    _hideCaretAndSave() {
-        this.virtualCaret.style.display = 'none';
-        const sel = window.getSelection();
-        if (sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0).cloneRange();
-            this.savedRange = this.resultArea.contains(range.commonAncestorContainer) ? range : null;
-        } else {
-            this.savedRange = null;
-        }
-    }
+    _hideCaretAndSave() {
+        this.virtualCaret.style.display = 'none';
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0).cloneRange();
+            this.savedRange = this.resultArea.contains(range.commonAncestorContainer) ? range : null;
+        } else {
+            this.savedRange = null;
+        }
+    }
 
-    _initSelection() {
-        const range = document.createRange();
-        range.selectNodeContents(this.resultArea);
-        range.collapse(true);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-    }
+    _initSelection() {
+        const range = document.createRange();
+        range.selectNodeContents(this.resultArea);
+        range.collapse(true);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+    }
 
     _updateCaret() {
         const sel = window.getSelection();
-        if (!sel.rangeCount || !this.resultArea.contains(sel.anchorNode)) {
+        if (!sel.rangeCount || !this.resultArea.contains(sel.focusNode)) {
             this.virtualCaret.style.display = 'none';
             return;
         }
-        const range = sel.getRangeAt(0);
-        if (!range.collapsed) {
-            this.virtualCaret.style.display = 'none';
-            return;
-        }
+
+        const range = document.createRange();
+        try {
+            // 始终追踪 focusNode（选区的活动端）
+            range.setStart(sel.focusNode, sel.focusOffset);
+            range.collapse(true);
+        } catch (e) { return; }
+
         let rect = range.getBoundingClientRect();
+        const containerRect = this.resultArea.getBoundingClientRect();
+
+        // 如果位置不可读（如在行尾），用零宽字符撑开计算
         if (rect.width === 0 && rect.height === 0) {
             const span = document.createElement('span');
             span.innerHTML = '&#8203;';
@@ -369,7 +386,7 @@ class AISearchModal extends Modal {
             rect = span.getBoundingClientRect();
             span.remove();
         }
-        const containerRect = this.resultArea.getBoundingClientRect();
+
         Object.assign(this.virtualCaret.style, {
             display: 'block',
             left: `${rect.left - containerRect.left + this.resultArea.scrollLeft}px`,
@@ -379,92 +396,114 @@ class AISearchModal extends Modal {
     }
 
     _ensureVisible() {
-        const sel = window.getSelection();
-        if (!sel.rangeCount) return;
-        const rect = sel.getRangeAt(0).getBoundingClientRect();
-        const areaRect = this.resultArea.getBoundingClientRect();
-        if (rect.bottom > areaRect.bottom) this.resultArea.scrollTop += rect.bottom - areaRect.bottom + 40;
-        if (rect.top < areaRect.top) this.resultArea.scrollTop -= areaRect.top - rect.top + 40;
-    }
+            const sel = window.getSelection();
+            // 确保选区存在且焦点在结果区域内
+            if (!sel.rangeCount || !this.resultArea.contains(sel.focusNode)) return;
 
-    async _search() {
-        const query = this.inputEl.value.trim();
+            const range = document.createRange();
+            try {
+                // 1. 在当前的焦点（即 Shift + K 移动到的位置）创建一个临时的 Range
+                range.setStart(sel.focusNode, sel.focusOffset);
+                range.collapse(true);
 
-        if (query) {
-            this.inputEl.placeholder = query;
-            this.inputEl.value = '';
-            this.inputEl.style.height = 'auto';
+                // 2. 插入一个不可见的探测元素
+                const ghost = document.createElement('span');
+                // 设置一个高度缓冲区，比如 30px（约1.5行高），这样它会提前触发滚动
+                ghost.style.cssText = 'display:inline-block;width:1px;height:30px;vertical-align:bottom;';
+                range.insertNode(ghost);
+
+                // 3. 调用原生滚动 API
+                // block: 'nearest' 表示“就近滚动”：如果已经在视野内就不动，如果超出边界就滚到最近的边边缘
+                ghost.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+
+                // 4. 立即移除探测元素，防止破坏文档结构
+                ghost.remove();
+                
+                // 5. 滚动后立即同步更新虚拟光标的位置
+                this._updateCaret();
+            } catch (e) {
+                // 忽略 range 设置时可能的微小错误
+            }
         }
 
-        if (!query) return;
+    async _search() {
+        const query = this.inputEl.value.trim();
 
-        const { apiKey, apiModel } = this.plugin.settings;
-        if (!apiKey) {
-            this.resultArea.empty();
-            this.virtualCaret = this.resultArea.createDiv({ cls: 'aisearch-caret' });
-            this.resultArea.createDiv({
-                text: '❌ 请先在插件设置中填写 API Key',
-                attr: { style: 'color: var(--text-error);' }
-            });
-            return;
-        }
+        if (query) {
+            this.inputEl.placeholder = query;
+            this.inputEl.value = '';
+            this.inputEl.style.height = 'auto';
+        }
 
-        this.resultArea.empty();
-        this.virtualCaret = this.resultArea.createDiv({ cls: 'aisearch-caret' });
-        const statusEl = this.resultArea.createDiv({ cls: 'aisearch-status', text: `🚀 ${apiModel} 思考中...` });
-        const responseEl = this.resultArea.createDiv({ cls: 'aisearch-response' });
+        if (!query) return;
 
-        try {
-            const answer = await this._fetchAI(query);
-            statusEl.remove();
-            await MarkdownRenderer.renderMarkdown(answer, responseEl, '', this.plugin);
-            this.savedRange = null;
-            this.resultArea.focus();
-            this._initSelection();
-            this._updateCaret();
-        } catch (error) {
-            statusEl.setText(`❌ 错误: ${this._friendlyError(error.message)}`);
-        }
-    }
+        const { apiKey, apiModel } = this.plugin.settings;
+        if (!apiKey) {
+            this.resultArea.empty();
+            this.virtualCaret = this.resultArea.createDiv({ cls: 'aisearch-caret' });
+            this.resultArea.createDiv({
+                text: '❌ 请先在插件设置中填写 API Key',
+                attr: { style: 'color: var(--text-error);' }
+            });
+            return;
+        }
 
-    async _fetchAI(query) {
-        const { apiUrl, apiKey, apiModel, apiMaxToken, apiTemperature } = this.plugin.settings;
-        const response = await requestUrl({
-            url: apiUrl,
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${apiKey.trim()}`
-            },
-            body: JSON.stringify({
-                model: apiModel,
-                messages: [
-                    { role: 'system', content: '你是一个集成在 Obsidian 中的 AI 助手。' },
-                    { role: 'user', content: query }
-                ],
-                max_tokens: apiMaxToken,
-                temperature: apiTemperature,
-                stream: false
-            })
-        });
-        const result = response.json;
-        if (result.error) throw new Error(result.error.message);
-        return result.choices[0].message.content;
-    }
+        this.resultArea.empty();
+        this.virtualCaret = this.resultArea.createDiv({ cls: 'aisearch-caret' });
+        const statusEl = this.resultArea.createDiv({ cls: 'aisearch-status', text: `🚀 ${apiModel} 思考中...` });
+        const responseEl = this.resultArea.createDiv({ cls: 'aisearch-response' });
 
-    _friendlyError(msg) {
-        if (msg.includes('401')) return 'API Key 错误';
-        if (msg.includes('402')) return '余额不足';
-        if (msg.includes('429')) return '频率过快';
-        return msg;
-    }
+        try {
+            const answer = await this._fetchAI(query);
+            statusEl.remove();
+            await MarkdownRenderer.renderMarkdown(answer, responseEl, '', this.plugin);
+            this.savedRange = null;
+            this.resultArea.focus();
+            this._initSelection();
+            this._updateCaret();
+        } catch (error) {
+            statusEl.setText(`❌ 错误: ${this._friendlyError(error.message)}`);
+        }
+    }
 
-    onClose() {
-        if (this._globalKeyHandler) this.modalEl.removeEventListener('keydown', this._globalKeyHandler, true);
-        if (this._resultKeyHandler) this.resultArea.removeEventListener('keydown', this._resultKeyHandler, true);
-        this.plugin.currentModal = null;
-        this.contentEl.empty();
-    }
+    async _fetchAI(query) {
+        const { apiUrl, apiKey, apiModel, apiMaxToken, apiTemperature } = this.plugin.settings;
+        const response = await requestUrl({
+            url: apiUrl,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiKey.trim()}`
+            },
+            body: JSON.stringify({
+                model: apiModel,
+                messages: [
+                    { role: 'system', content: '你是一个集成在 Obsidian 中的 AI 助手。' },
+                    { role: 'user', content: query }
+                ],
+                max_tokens: apiMaxToken,
+                temperature: apiTemperature,
+                stream: false
+            })
+        });
+        const result = response.json;
+        if (result.error) throw new Error(result.error.message);
+        return result.choices[0].message.content;
+    }
+
+    _friendlyError(msg) {
+        if (msg.includes('401')) return 'API Key 错误';
+        if (msg.includes('402')) return '余额不足';
+        if (msg.includes('429')) return '频率过快';
+        return msg;
+    }
+
+    onClose() {
+        if (this._globalKeyHandler) this.modalEl.removeEventListener('keydown', this._globalKeyHandler, true);
+        if (this._resultKeyHandler) this.resultArea.removeEventListener('keydown', this._resultKeyHandler, true);
+        this.plugin.currentModal = null;
+        this.contentEl.empty();
+    }
 }
 
 module.exports = AISearchPlugin;
