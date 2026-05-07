@@ -83,14 +83,13 @@
 .aisearch-input:focus,
 .aisearch-result-area:focus {
     border-color: #6ca8fcb2;
-    box-shadow: 0 0 8px rgba(84, 155, 255, 0.35);
+    box-shadow: 0 0 6px 2px rgba(84, 155, 255, 0.35);
 }
 
 /* ---- 输入框独有样式 ---- */
 .aisearch-input {
     font-size: 18px !important;
     padding: 6px 6px 6px 10px;   /* 右侧 30px 给清除按钮腾出空间 */
-    box-shadow: none !important;
 
     resize: none;            /* 禁止用户手动拉伸 */
     overflow-y: hidden;      /* 还没超过最大高度时，隐藏滚动条 */
