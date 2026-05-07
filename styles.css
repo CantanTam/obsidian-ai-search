@@ -37,7 +37,8 @@
 .aisearch-content {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1 1 0;  
+    min-height: 0; 
     padding: 0 !important;
 }
 
@@ -102,7 +103,7 @@
 /* 清除按钮 */
 .aisearch-clear-btn {
     position: absolute;
-    top: 20px;
+    top: 21px;
     right: 8px;
     transform: translateY(-50%);
     width: 22px;
@@ -132,7 +133,7 @@
 .aisearch-caret {
     position: absolute;
     width: 2px;
-    background-color: var(--text-accent);
+    background-color: #00cc66;
     pointer-events: none;
     display: none;
     z-index: 100;
