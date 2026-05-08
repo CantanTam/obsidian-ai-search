@@ -223,8 +223,28 @@ class AISearchModal extends Modal {
             attr: { placeholder: 'Shift + Enter 换行', rows: '1' }
         });
 
-        const thinkBtn = inputWrapper.createDiv({ cls: 'aisearch-think-btn clickable-icon' });
-        setTooltip(thinkBtn, '清空输入', { placement: 'top' });
+        const thinkBtn = inputWrapper.createDiv({ cls: 'aisearch-think-btn' });
+
+        // 根据当前 toThink 状态更新按钮外观和提示
+        const updateThinkBtn = () => {
+            if (this.plugin.settings.toThink) {
+                thinkBtn.classList.add('aisearch-think-on');
+                thinkBtn.classList.remove('aisearch-think-off');
+                setTooltip(thinkBtn, '思考模式：开', { placement: 'top' });
+            } else {
+                thinkBtn.classList.remove('aisearch-think-on');
+                thinkBtn.classList.add('aisearch-think-off');
+                setTooltip(thinkBtn, '思考模式：关', { placement: 'top' });
+            }
+        };
+        updateThinkBtn();
+
+        // 点击切换状态并保存
+        thinkBtn.addEventListener('click', async () => {
+            this.plugin.settings.toThink = !this.plugin.settings.toThink;
+            await this.plugin.saveSettings();
+            updateThinkBtn();
+        });
 
         this.resultArea = contentEl.createDiv({
             cls: 'aisearch-result-area',
@@ -234,12 +254,6 @@ class AISearchModal extends Modal {
         this.resultArea.createDiv({
             text: '等待输入...',
             attr: { style: 'color: var(--text-muted); opacity: 0.5;' }
-        });
-
-        thinkBtn.addEventListener('click', () => {
-            this.inputEl.value = '';
-            this.inputEl.style.height = 'auto';
-            this.inputEl.focus();
         });
     }
 
