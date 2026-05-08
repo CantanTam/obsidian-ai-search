@@ -119,11 +119,6 @@
     z-index: 1;
 }
 
-.aisearch-think-btn svg {
-    width: 18px;
-    height: 18px;
-}
-
 .aisearch-think-btn:hover {
     background: #ff6063;
     color: white;

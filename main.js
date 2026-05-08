@@ -224,7 +224,6 @@ class AISearchModal extends Modal {
         });
 
         const thinkBtn = inputWrapper.createDiv({ cls: 'aisearch-think-btn clickable-icon' });
-        //setIcon(thinkBtn, 'cross');
         setTooltip(thinkBtn, '清空输入', { placement: 'top' });
 
         this.resultArea = contentEl.createDiv({
