@@ -67,7 +67,9 @@ class AISearchPlugin extends Plugin {
         if (diff > 0 && diff < 300) {
             const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
             const editor = activeView?.editor ?? null;
-            const modal = new AISearchModal(this.app, this, editor);
+            // 获取选中的文本（可能为空）
+            const selectedText = editor ? editor.getSelection() : '';
+            const modal = new AISearchModal(this.app, this, editor, selectedText);
             modal.open();
             this.currentModal = modal;
             this.lastTriggerTime = 0;
@@ -234,10 +236,11 @@ class AISearchSettingTab extends PluginSettingTab {
 
 // 搜索弹窗
 class AISearchModal extends Modal {
-    constructor(app, plugin, editor) {
+    constructor(app, plugin, editor, selectedText = '') {
         super(app);
         this.plugin = plugin;
         this.editor = editor;
+        this.selectedText = selectedText;
         this.cursorPos = editor?.getCursor() ?? null;
         this.virtualCaret = null;
         this.savedRange = null;
@@ -253,7 +256,16 @@ class AISearchModal extends Modal {
         this._setupStyle();
         this._render();
         this._bindEvents();
-        setTimeout(() => this.inputEl?.focus(), 50);
+        
+        // 如果开启了“选中搜索”，且确实有选中文本，则自动填入并搜索
+        if (this.plugin.settings.selectSearch && this.selectedText) {
+            this.inputEl.value = this.selectedText;
+            this.inputEl.style.height = 'auto';   // 调整输入框高度
+            // 稍延迟一下，等待 input 高度更新后再触发搜索
+            setTimeout(() => this._search(), 20);
+        } else {
+            setTimeout(() => this.inputEl?.focus(), 50);
+        }
     }
 
     _setupStyle() {
@@ -573,10 +585,17 @@ class AISearchModal extends Modal {
         }
 
     async _search() {
-        const query = this.inputEl.value.trim();
+        let query = this.inputEl.value.trim();
+
+        // 如果是在“自动搜索”模式下（即 this.selectedText 非空且 selectSearch 开启）
+        if (this.plugin.settings.selectSearch && this.selectedText) {
+            // 拼接选中文本和提示词作为实际发送的查询
+            query = this.selectedText + this.plugin.settings.searchPrompt;
+            // 注意：此时 inputEl.value 已经是选中文本，我们保留它占位符显示，但发送拼接后的 query
+        }
 
         if (query) {
-            this.inputEl.placeholder = query;
+            this.inputEl.placeholder = this.inputEl.value || query;
             this.inputEl.value = '';
             this.inputEl.style.height = 'auto';
         }
