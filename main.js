@@ -142,8 +142,8 @@ class AISearchSettingTab extends PluginSettingTab {
         const searchPromptSetting = this._addTextArea(
             '搜索提示词', '自定义搜索时的提示语', 
             'searchPrompt', 
-            '例如填写「→是什么意思？」，当你选中文本「XXX」再执行动作，就会变成向询问「XXX→是什么意思？」' +
-            '，用于模拟一般的搜索引擎搜索');
+            '例如填写「搜索{{selection}}的相关信息」然后你选中「蔡徐坤」并直接启动插件，' +
+            '就会变成向询问「搜索蔡徐坤的相关信息」，用于模拟一般的搜索引擎搜索');
 
         // 单独设置 textarea 的高度和样式
         const textareaEl = searchPromptSetting.controlEl.querySelector('textarea');
@@ -597,7 +597,14 @@ class AISearchModal extends Modal {
 
         // 只有自动搜索那一次才拼接 searchPrompt
         if (this._isAutoSearch && this.plugin.settings.selectSearch && this.selectedText) {
-            query = this.selectedText + this.plugin.settings.searchPrompt;
+            const template = this.plugin.settings.searchPrompt || '';
+            if (template.includes('{{selection}}')) {
+                // 将占位符替换为选中的文本
+                query = template.replace(/\{\{selection\}\}/g, this.selectedText);
+            } else {
+                // 向后兼容：无占位符时，选中文本直接拼在提示词前面
+                query = this.selectedText + template;
+            }
             // 拼接后立即关闭自动搜索标志，确保下次手动搜索不再拼接
             this._isAutoSearch = false;
         }

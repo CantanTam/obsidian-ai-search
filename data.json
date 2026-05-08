@@ -13,8 +13,8 @@
   "rightKey": "KeyL",
   "sendKey": "Space",
   "toClose": false,
-  "toThink": false,
+  "toThink": true,
   "clearInputTime": 1,
   "selectSearch": true,
-  "searchPrompt": "←←搜索相关信息"
+  "searchPrompt": "模拟搜索引擎，搜索「{{selection}}」的相关信息并进行输出"
 }
