@@ -102,25 +102,32 @@
 
 .aisearch-think-btn {
     position: absolute;
-    top: 21px;
+    top: 20px;
     right: 9px;
     transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     cursor: pointer;
     z-index: 1;
+    transition: background-color 0.25s ease;
+    background-color: var(--btn-bg);
+    box-shadow:
+        0 0 2px var(--btn-bg),
+        0 0 8px var(--btn-bg),
+        0 0 16px var(--btn-bg),
+        0 0 24px var(--btn-bg);
 }
 
 .aisearch-think-on {
-    background-color: #00cc6670;
+    --btn-bg: #00cc6670;
 }
 
 .aisearch-think-off {
-    background-color: #ffffff15;
+    --btn-bg: #ffffff15;
 }
 
 /* 虚拟光标 */
