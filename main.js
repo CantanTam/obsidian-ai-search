@@ -467,6 +467,9 @@ class AISearchModal extends Modal {
                 if (now - this._lastSendTime < 2000) return;
                 this._lastSendTime = now;
 
+                // 如果插件是通过选中文本启动的，禁用 sendKey 功能
+                if (this.selectedText) return;
+
                 // 获取选区文本，如果无选区则取结果区全部内容
                 let rawText = window.getSelection().toString();
                 if (!rawText.trim()) {
