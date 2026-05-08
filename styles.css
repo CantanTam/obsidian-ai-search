@@ -101,7 +101,7 @@
 }
 
 /* 清除按钮 */
-.aisearch-clear-btn {
+.aisearch-think-btn {
     position: absolute;
     top: 21px;
     right: 8px;
@@ -119,12 +119,12 @@
     z-index: 1;
 }
 
-.aisearch-clear-btn svg {
+.aisearch-think-btn svg {
     width: 18px;
     height: 18px;
 }
 
-.aisearch-clear-btn:hover {
+.aisearch-think-btn:hover {
     background: #ff6063;
     color: white;
 }

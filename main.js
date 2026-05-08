@@ -223,9 +223,9 @@ class AISearchModal extends Modal {
             attr: { placeholder: 'Shift + Enter 换行', rows: '1' }
         });
 
-        const clearBtn = inputWrapper.createDiv({ cls: 'aisearch-clear-btn clickable-icon' });
-        setIcon(clearBtn, 'cross');
-        setTooltip(clearBtn, '清空输入', { placement: 'top' });
+        const thinkBtn = inputWrapper.createDiv({ cls: 'aisearch-think-btn clickable-icon' });
+        //setIcon(thinkBtn, 'cross');
+        setTooltip(thinkBtn, '清空输入', { placement: 'top' });
 
         this.resultArea = contentEl.createDiv({
             cls: 'aisearch-result-area',
@@ -237,7 +237,7 @@ class AISearchModal extends Modal {
             attr: { style: 'color: var(--text-muted); opacity: 0.5;' }
         });
 
-        clearBtn.addEventListener('click', () => {
+        thinkBtn.addEventListener('click', () => {
             this.inputEl.value = '';
             this.inputEl.style.height = 'auto';
             this.inputEl.focus();
