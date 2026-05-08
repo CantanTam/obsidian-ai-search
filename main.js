@@ -260,10 +260,12 @@ class AISearchModal extends Modal {
         // 如果开启了“选中搜索”，且确实有选中文本，则自动填入并搜索
         if (this.plugin.settings.selectSearch && this.selectedText) {
             this.inputEl.value = this.selectedText;
-            this.inputEl.style.height = 'auto';   // 调整输入框高度
-            // 稍延迟一下，等待 input 高度更新后再触发搜索
+            this.inputEl.style.height = 'auto';
+            // 标记这是一次自动搜索，后续手动搜索将不拼接 searchPrompt
+            this._isAutoSearch = true;
             setTimeout(() => this._search(), 20);
         } else {
+            this._isAutoSearch = false;
             setTimeout(() => this.inputEl?.focus(), 50);
         }
     }
@@ -465,9 +467,12 @@ class AISearchModal extends Modal {
                 if (now - this._lastSendTime < 2000) return;
                 this._lastSendTime = now;
 
-                // 获取选区文本，并去除首尾多余的换行符
-                const rawText = window.getSelection().toString();
-                const selectedText = rawText.replace(/^\n+|\n+$/g, '');   // 关键修改
+                // 获取选区文本，如果无选区则取结果区全部内容
+                let rawText = window.getSelection().toString();
+                if (!rawText.trim()) {
+                    rawText = this.resultArea.innerText;
+                }
+                const selectedText = rawText.replace(/^\n+|\n+$/g, '');
                 
                 if (selectedText && this.editor) {
                     const cursor = this.editor.getCursor();
@@ -587,17 +592,11 @@ class AISearchModal extends Modal {
     async _search() {
         let query = this.inputEl.value.trim();
 
-        // 如果是在“自动搜索”模式下（即 this.selectedText 非空且 selectSearch 开启）
-        if (this.plugin.settings.selectSearch && this.selectedText) {
-            // 拼接选中文本和提示词作为实际发送的查询
+        // 只有自动搜索那一次才拼接 searchPrompt
+        if (this._isAutoSearch && this.plugin.settings.selectSearch && this.selectedText) {
             query = this.selectedText + this.plugin.settings.searchPrompt;
-            // 注意：此时 inputEl.value 已经是选中文本，我们保留它占位符显示，但发送拼接后的 query
-        }
-
-        if (query) {
-            this.inputEl.placeholder = this.inputEl.value || query;
-            this.inputEl.value = '';
-            this.inputEl.style.height = 'auto';
+            // 拼接后立即关闭自动搜索标志，确保下次手动搜索不再拼接
+            this._isAutoSearch = false;
         }
 
         if (!query) return;
