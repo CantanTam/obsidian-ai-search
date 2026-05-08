@@ -333,24 +333,46 @@ class AISearchModal extends Modal {
             if (e.code in dirMap) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
+
                 const sel = window.getSelection();
                 if (sel.rangeCount === 0 || !this.resultArea.contains(sel.anchorNode)) {
                     this._initSelection();
                 }
 
-                // 保存移动前的选区，用于后续可能的撤销
-                const prevRange = sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+                // --- 关键修改开始：记录移动前的位置 ---
+                const rangeBefore = sel.getRangeAt(0).cloneRange();
+                const startContainerBefore = rangeBefore.startContainer;
+                const startOffsetBefore = rangeBefore.startOffset;
+                // --- 关键修改结束 ---
+
                 const [dir, gran] = dirMap[e.code];
                 sel.modify(e.shiftKey ? 'extend' : 'move', dir, gran);
 
-                // 如果移动后焦点离开了 resultArea（比如跑到输入框），则恢复到移动前
+                // --- 关键修改开始：检查是否真的移动了 ---
+                // 如果移动后的位置和移动前一样，说明到达边界了，直接返回
+                if (sel.rangeCount > 0) {
+                    const rangeAfter = sel.getRangeAt(0);
+                    if (
+                        rangeAfter.startContainer === startContainerBefore &&
+                        rangeAfter.startOffset === startOffsetBefore
+                    ) {
+                    // 位置没变，说明到头了，不需要更新视图
+                    return;
+                    }
+                }
+                // --- 关键修改结束 ---
+
+                // 原有的边界检查逻辑（保持不变）
                 if (sel.rangeCount > 0 && !this.resultArea.contains(sel.focusNode)) {
+                    // 恢复旧range的逻辑...
                     if (prevRange) {
                         sel.removeAllRanges();
                         sel.addRange(prevRange);
-                    }
+                        }
+                    return; // 注意这里也需要 return，防止执行下面的 update
                 }
 
+                // 只有在真正移动时才更新视图
                 setTimeout(() => {
                     this._ensureVisible();
                     this._updateCaret();
