@@ -30,6 +30,8 @@ const DEFAULT_SETTINGS = {
     toClose: false,
     toThink: true,
     clearInputTime: 1, 
+    selectSearch: true,
+    searchPrompt:'',
 };
 
 // 主插件类
@@ -119,6 +121,42 @@ class AISearchSettingTab extends PluginSettingTab {
         this._addSlider('输出长度上限', '数值越小越节约token数', 'apiMaxToken', [100, 5000, 100]);
         this._addSlider('采样温度', '数值越小越精准，数值越大越有创意', 'apiTemperature', [0, 2, 0.1]);
         this._addToggle('启用思考模式', '关闭可让简单问题回答更快，不输出思维链', 'toThink');
+
+        // --- 单独创建“选中搜索”开关，并在切换时控制 searchPrompt 的可见性 ---
+        new Setting(containerEl)
+            .setName('选中搜索')
+            .setDesc('模拟搜索引擎选中文本进行搜索')
+            .addToggle(t => {
+                t.setValue(this.plugin.settings.selectSearch)
+                .onChange(async v => {
+                    this.plugin.settings.selectSearch = v;
+                    await this.plugin.saveSettings();
+                     // 同步可见性：开启时显示，关闭时隐藏
+                    searchPromptItem.style.display = v ? '' : 'none';
+                });
+            });
+
+        // --- 先创建“搜索提示词”输入框，以便后续控制其显示/隐藏 ---
+        const searchPromptSetting = this._addTextArea(
+            '搜索提示词', '自定义搜索时的提示语', 
+            'searchPrompt', 
+            '例如填写「→是什么意思？」，当你选中文本「XXX」再执行动作，就会变成向询问「XXX→是什么意思？」' +
+            '，用于模拟一般的搜索引擎搜索');
+
+        // 单独设置 textarea 的高度和样式
+        const textareaEl = searchPromptSetting.controlEl.querySelector('textarea');
+        if (textareaEl) {
+            textareaEl.style.height = '80px';
+            textareaEl.style.width = '300px';
+            textareaEl.style.resize = 'vertical';
+            textareaEl.style.boxSizing = 'border-box';
+        }
+
+        // 获取“搜索提示词”所在行的整个容器元素（.setting-item）
+        const searchPromptItem = searchPromptSetting.settingEl;
+        // 根据当前 selectSearch 的值，初始化显示或隐藏
+        searchPromptItem.style.display = this.plugin.settings.selectSearch ? '' : 'none';
+
     }
 
     _addKeyBinding(name, key) {
@@ -166,7 +204,7 @@ class AISearchSettingTab extends PluginSettingTab {
     }
 
     _addText(name, desc, key, placeholder = '') {
-        new Setting(this.containerEl)
+        const setting = new Setting(this.containerEl)
             .setName(name)
             .setDesc(desc)
             .addText(t => t
@@ -176,6 +214,21 @@ class AISearchSettingTab extends PluginSettingTab {
                     this.plugin.settings[key] = v;
                     await this.plugin.saveSettings();
                 }));
+        return setting;   // 返回 Setting 对象，便于外部进一步定制
+    }
+
+    _addTextArea(name, desc, key, placeholder = '') {
+        const setting = new Setting(this.containerEl)
+            .setName(name)
+            .setDesc(desc)
+            .addTextArea(t => t
+                .setPlaceholder(placeholder)
+                .setValue(this.plugin.settings[key])
+                .onChange(async v => {
+                    this.plugin.settings[key] = v;
+                    await this.plugin.saveSettings();
+                }));
+        return setting;
     }
 }
 
