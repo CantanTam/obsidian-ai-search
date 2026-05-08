@@ -595,18 +595,24 @@ class AISearchModal extends Modal {
     async _search() {
         let query = this.inputEl.value.trim();
 
-        // 只有自动搜索那一次才拼接 searchPrompt
-        if (this._isAutoSearch && this.plugin.settings.selectSearch && this.selectedText) {
+        // 保存是否是自动搜索的标志（在拼接前记录）
+        const isAuto = this._isAutoSearch && this.plugin.settings.selectSearch && this.selectedText;
+
+        if (isAuto) {
             const template = this.plugin.settings.searchPrompt || '';
             if (template.includes('{{selection}}')) {
-                // 将占位符替换为选中的文本
                 query = template.replace(/\{\{selection\}\}/g, this.selectedText);
             } else {
-                // 向后兼容：无占位符时，选中文本直接拼在提示词前面
                 query = this.selectedText + template;
             }
-            // 拼接后立即关闭自动搜索标志，确保下次手动搜索不再拼接
             this._isAutoSearch = false;
+        }
+
+        if (query) {
+            // 自动搜索时，placeholder 只显示选中的文本；手动搜索时显示实际输入内容
+            this.inputEl.placeholder = isAuto ? this.selectedText : query;
+            this.inputEl.value = '';
+            this.inputEl.style.height = 'auto';
         }
 
         if (!query) return;
