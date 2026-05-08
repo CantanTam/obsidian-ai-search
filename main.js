@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS = {
     rightKey: 'KeyL',
     sendKey: 'Space',
     toClose: false,
+    toThink: true,
     clearInputTime: 1, 
 };
 
@@ -117,6 +118,7 @@ class AISearchSettingTab extends PluginSettingTab {
         this._addText('模型类型', '', 'apiModel');
         this._addSlider('输出长度上限', '数值越小越节约token数', 'apiMaxToken', [100, 5000, 100]);
         this._addSlider('采样温度', '数值越小越精准，数值越大越有创意', 'apiTemperature', [0, 2, 0.1]);
+        this._addToggle('启用思考模式', '关闭可让简单问题回答更快，不输出思维链', 'toThink');
     }
 
     _addKeyBinding(name, key) {
@@ -523,7 +525,22 @@ class AISearchModal extends Modal {
     }
 
     async _fetchAI(query) {
-        const { apiUrl, apiKey, apiModel, apiMaxToken, apiTemperature } = this.plugin.settings;
+        const { apiUrl, apiKey, apiModel, apiMaxToken, apiTemperature, toThink } = this.plugin.settings;
+
+        const body = {
+            model: apiModel,
+            messages: [
+                { role: 'system', content: '你是一个集成在 Obsidian 中的 AI 助手。' },
+                { role: 'user', content: query }
+            ],
+            max_tokens: apiMaxToken,
+            temperature: apiTemperature,
+            stream: false
+        };
+
+        // 2. 根据设置决定是否启用思考模式
+        body.thinking = { type: toThink ? 'enabled' : 'disabled' };
+
         const response = await requestUrl({
             url: apiUrl,
             method: 'POST',
@@ -531,19 +548,12 @@ class AISearchModal extends Modal {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${apiKey.trim()}`
             },
-            body: JSON.stringify({
-                model: apiModel,
-                messages: [
-                    { role: 'system', content: '你是一个集成在 Obsidian 中的 AI 助手。' },
-                    { role: 'user', content: query }
-                ],
-                max_tokens: apiMaxToken,
-                temperature: apiTemperature,
-                stream: false
-            })
+            body: JSON.stringify(body)
         });
+        
         const result = response.json;
         if (result.error) throw new Error(result.error.message);
+        
         return result.choices[0].message.content;
     }
 
