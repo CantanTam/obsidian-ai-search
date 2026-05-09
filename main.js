@@ -327,8 +327,13 @@ class AISearchModal extends Modal {
         this.inputEl.addEventListener('compositionend', () => { this.isComposing = false; });
 
         this.inputEl.addEventListener('input', () => {
-            this.inputEl.style.height = 'auto';
-            this.inputEl.style.height = `${this.inputEl.scrollHeight}px`;
+            if (this.inputEl.value === '') {
+                // 内容为空时强制恢复为 CSS 默认的单行高度
+                this.inputEl.style.height = '';
+            } else {
+                this.inputEl.style.height = 'auto';
+                this.inputEl.style.height = `${this.inputEl.scrollHeight}px`;
+            }
         });
 
         this.inputEl.addEventListener('keydown', e => {
@@ -441,12 +446,9 @@ class AISearchModal extends Modal {
 
                 // 原有的边界检查逻辑（保持不变）
                 if (sel.rangeCount > 0 && !this.resultArea.contains(sel.focusNode)) {
-                    // 恢复旧range的逻辑...
-                    if (prevRange) {
-                        sel.removeAllRanges();
-                        sel.addRange(prevRange);
-                        }
-                    return; // 注意这里也需要 return，防止执行下面的 update
+                    sel.removeAllRanges();
+                    sel.addRange(rangeBefore);
+                    return;
                 }
 
                 // 只有在真正移动时才更新视图
@@ -608,7 +610,7 @@ class AISearchModal extends Modal {
             // 自动搜索时，placeholder 只显示选中的文本；手动搜索时显示实际输入内容
             this.inputEl.placeholder = isAuto ? this.selectedText : query;
             this.inputEl.value = '';
-            this.inputEl.style.height = 'auto';
+            this.inputEl.style.height = '';
         }
 
         if (!query) return;
