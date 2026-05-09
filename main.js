@@ -471,10 +471,9 @@ class AISearchModal extends Modal {
                 if (this.selectedText) return;
 
                 // 获取选区文本，如果无选区则取结果区全部内容
-                let rawText = window.getSelection().toString();
-                if (!rawText.trim()) {
-                    rawText = this.resultArea.innerText;
-                }
+                const rawText = window.getSelection().toString();
+                if (!rawText.trim()) return; // 无选区直接返回，不执行任何操作
+                
                 const selectedText = rawText.replace(/^\n+|\n+$/g, '');
                 
                 if (selectedText && this.editor) {
