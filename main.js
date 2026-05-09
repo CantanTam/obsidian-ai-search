@@ -53,6 +53,14 @@ const DEFAULT_SETTINGS = {
 class AISearchPlugin extends Plugin {
     async onload() {
         await this.loadSettings();
+
+        // --- 新增：初始化历史文件 ---
+        this.historyPath = `${this.manifest.dir}/history.md`;
+        const adapter = this.app.vault.adapter;
+        if (!(await adapter.exists(this.historyPath))) {
+            await adapter.write(this.historyPath, ""); // 如果不存在则创建空文件
+        }
+
         this.lastTriggerTime = 0;
         this.currentModal = null;
         this.registerDomEvent(document, 'keydown', this._onTriggerKey.bind(this));
@@ -281,6 +289,7 @@ class AISearchModal extends Modal {
             setTimeout(() => this._search(), 20);
         } else {
             this._isAutoSearch = false;
+            this._displayHistory(); 
             setTimeout(() => this.inputEl?.focus(), 50);
         }
     }
@@ -368,6 +377,7 @@ class AISearchModal extends Modal {
             // 控制高度
             if (this.inputEl.value === '') {
                 this.inputEl.style.height = '';
+                this._displayHistory();
             } else {
                 this.inputEl.style.height = 'auto';
                 this.inputEl.style.height = `${this.inputEl.scrollHeight}px`;
@@ -674,6 +684,7 @@ class AISearchModal extends Modal {
 
         try {
             const answer = await this._fetchAI(query);
+            await this._writeHistory(answer);
             statusEl.remove();
             await MarkdownRenderer.renderMarkdown(answer, responseEl, '', this.plugin);
             this.savedRange = null;
@@ -723,6 +734,34 @@ class AISearchModal extends Modal {
         if (msg.includes('402')) return '余额不足';
         if (msg.includes('429')) return '频率过快';
         return msg;
+    }
+
+    // --- 新增：历史文件处理辅助函数 ---
+    async _readHistory() {
+        try {
+            return await this.app.vault.adapter.read(this.plugin.historyPath);
+        } catch (e) {
+            return "";
+        }
+    }
+
+    async _writeHistory(content) {
+        try {
+            await this.app.vault.adapter.write(this.plugin.historyPath, content);
+        } catch (e) {
+            console.error("写入历史文件失败", e);
+        }
+    }
+
+    async _displayHistory() {
+        const content = await this._readHistory();
+        this.resultArea.empty();
+        this.virtualCaret = this.resultArea.createDiv({ cls: 'aisearch-caret' });
+        const responseEl = this.resultArea.createDiv({ cls: 'aisearch-response' });
+        
+        if (content.trim()) {
+            await MarkdownRenderer.renderMarkdown(content, responseEl, '', this.plugin);
+        } 
     }
 
     onClose() {
