@@ -287,7 +287,8 @@ class AISearchModal extends Modal {
 
         this.inputEl = inputWrapper.createEl('textarea', {
             cls: 'aisearch-input',
-            attr: { placeholder: 'Shift + Enter 换行', rows: '1' }
+            //输入框提示信息
+            attr: { placeholder: '', rows: '1' }
         });
 
         const thinkBtn = inputWrapper.createDiv({ cls: 'aisearch-think-btn' });
@@ -318,10 +319,6 @@ class AISearchModal extends Modal {
             attr: { tabindex: '0', contenteditable: 'false' }
         });
         this.virtualCaret = this.resultArea.createDiv({ cls: 'aisearch-caret' });
-        this.resultArea.createDiv({
-            text: '等待输入...',
-            attr: { style: 'color: var(--text-muted); opacity: 0.5;' }
-        });
     }
 
     _bindEvents() {
