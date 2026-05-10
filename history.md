@@ -1,4 +1,4 @@
-### [点击查看B站详细设置教程](https://space.bilibili.com/391504171)
+### [点击查看B站详细设置教程](https://www.bilibili.com/video/BV1xd5J6qEBa)
 
 <font color="#ff0000ff"><b>［开关弹窗］</b></font>
 快速双击 <font color="#de7802">Alt</font> 启动弹窗窗口，弹窗窗口启动后，单击 <font color="#de7802">Alt</font> 、<font color="#de7802">Esc</font> 关闭弹窗窗口；

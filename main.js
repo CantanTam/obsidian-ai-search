@@ -213,13 +213,13 @@ class AISearchSettingTab extends PluginSettingTab {
             .setDesc('打开B站查看本插件的使用教程')
             .addButton(button => {
                 // 设置按钮文字和行为
-                button.setButtonText('打开')
+                button.setButtonText('打开B站')
                     .setCta()
                     .onClick(() => {
                         if (Platform.isDesktop) {
-                            require('electron').shell.openExternal('https://www.bilibili.com/video/BV1KPvNeuECD');
+                            require('electron').shell.openExternal('https://www.bilibili.com/video/BV1xd5J6qEBa');
                         } else {
-                            window.open('https://www.bilibili.com', '_blank');
+                            window.open('https://www.bilibili.com/video/BV1xd5J6qEBa');
                         }
                     });
                 // 直接在按钮元素上设置腰圆样式
