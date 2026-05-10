@@ -18,6 +18,7 @@ const GOOGLE_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" 
 
 const {
     Plugin,
+    setIcon,
     Modal,
     PluginSettingTab,
     Setting,
@@ -25,6 +26,7 @@ const {
     requestUrl,
     setTooltip,
     MarkdownView,
+    Platform,
 } = require('obsidian');
 
 // 默认设置
@@ -118,14 +120,19 @@ class AISearchSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('触发按键')
-            .addDropdown(d => d
-                .addOption('Alt', 'Alt')
+            .addDropdown(d => {
+                d.addOption('Alt', 'Alt')
                 .addOption('Control', 'Ctrl')
                 .setValue(this.plugin.settings.triggerKey)
                 .onChange(async v => {
                     this.plugin.settings.triggerKey = v;
                     await this.plugin.saveSettings();
-                }));
+                });
+                // 将下拉框变成腰圆形状
+                d.selectEl.style.borderRadius = '24px';
+                d.selectEl.style.paddingLeft = '30px';
+                d.selectEl.style.paddingRight = '30px';
+            });
 
         this._addKeyBinding('模拟Up键', 'upKey');
         this._addKeyBinding('模拟Down键', 'downKey');
@@ -182,79 +189,108 @@ class AISearchSettingTab extends PluginSettingTab {
         // 根据当前 selectSearch 的值，初始化显示或隐藏
         searchPromptItem.style.display = this.plugin.settings.selectSearch ? '' : 'none';
 
-    }
+        containerEl.createEl('h2', { text: '其它设置' });
 
-    _addKeyBinding(name, key) {
-        new Setting(this.containerEl)
-            .setName(name)
-            .addText(t => {
-                const inp = t.inputEl;
-                inp.value = this.plugin.settings[key];
-                Object.assign(inp.style, { cursor: 'pointer', textAlign: 'center', width: '100px' });
-                inp.addEventListener('keydown', async e => {
-                    e.preventDefault();
-                    const code = e.code;
-                    t.setValue(code);
-                    this.plugin.settings[key] = code;
-                    await this.plugin.saveSettings();
-                    inp.blur();
-                });
+        // 教程链接按钮
+        const tutorialSetting = new Setting(containerEl)
+            .setName('插件教程')
+            .setDesc('打开B站查看本插件的使用教程')
+            .addButton(button => {
+                // 设置按钮文字和行为
+                button.setButtonText('打开')
+                    .setCta()
+                    .onClick(() => {
+                        if (Platform.isDesktop) {
+                            require('electron').shell.openExternal('https://www.bilibili.com/video/BV1KPvNeuECD');
+                        } else {
+                            window.open('https://www.bilibili.com', '_blank');
+                        }
+                    });
+                // 直接在按钮元素上设置腰圆样式
+                button.buttonEl.style.borderRadius = '24px';
+                button.buttonEl.style.paddingLeft = '20px';
+                button.buttonEl.style.paddingRight = '20px';
             });
-    }
+        }
 
-    _addToggle(name, desc, key) {
-        new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(desc)
-            .addToggle(t => t
-                .setValue(this.plugin.settings[key])
-                .onChange(async v => {
-                    this.plugin.settings[key] = v;
-                    await this.plugin.saveSettings();
-                }));
-    }
+        _addKeyBinding(name, key) {
+            new Setting(this.containerEl)
+                .setName(name)
+                .addText(t => {
+                    const inp = t.inputEl;
+                    inp.value = this.plugin.settings[key];
+                    Object.assign(inp.style, {
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        width: '100px',
+                        borderRadius: '24px',      // ← 添加这一行，实现腰圆效果
+                        paddingLeft: '8px',        // 可选，让文字与边框不贴太紧
+                        paddingRight: '8px'
+                    });
+                    inp.addEventListener('keydown', async e => {
+                        e.preventDefault();
+                        const code = e.code;
+                        t.setValue(code);
+                        this.plugin.settings[key] = code;
+                        await this.plugin.saveSettings();
+                        inp.blur();
+                    });
+                });
+        }
 
-    _addSlider(name, desc, key, limits) {
-        new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(desc)
-            .addSlider(s => s
-                .setLimits(...limits)
-                .setValue(this.plugin.settings[key])
-                .setDynamicTooltip()
-                .onChange(async v => {
-                    this.plugin.settings[key] = v;
-                    await this.plugin.saveSettings();
-                }));
-    }
+        _addToggle(name, desc, key) {
+            new Setting(this.containerEl)
+                .setName(name)
+                .setDesc(desc)
+                .addToggle(t => t
+                    .setValue(this.plugin.settings[key])
+                    .onChange(async v => {
+                        this.plugin.settings[key] = v;
+                        await this.plugin.saveSettings();
+                    }));
+        }
 
-    _addText(name, desc, key, placeholder = '') {
-        const setting = new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(desc)
-            .addText(t => t
-                .setPlaceholder(placeholder)
-                .setValue(this.plugin.settings[key])
-                .onChange(async v => {
-                    this.plugin.settings[key] = v;
-                    await this.plugin.saveSettings();
-                }));
-        return setting;   // 返回 Setting 对象，便于外部进一步定制
-    }
+        _addSlider(name, desc, key, limits) {
+            new Setting(this.containerEl)
+                .setName(name)
+                .setDesc(desc)
+                .addSlider(s => s
+                    .setLimits(...limits)
+                    .setValue(this.plugin.settings[key])
+                    .setDynamicTooltip()
+                    .onChange(async v => {
+                        this.plugin.settings[key] = v;
+                        await this.plugin.saveSettings();
+                    }));
+        }
 
-    _addTextArea(name, desc, key, placeholder = '') {
-        const setting = new Setting(this.containerEl)
-            .setName(name)
-            .setDesc(desc)
-            .addTextArea(t => t
-                .setPlaceholder(placeholder)
-                .setValue(this.plugin.settings[key])
-                .onChange(async v => {
-                    this.plugin.settings[key] = v;
-                    await this.plugin.saveSettings();
-                }));
-        return setting;
-    }
+        _addText(name, desc, key, placeholder = '') {
+            const setting = new Setting(this.containerEl)
+                .setName(name)
+                .setDesc(desc)
+                .addText(t => t
+                    .setPlaceholder(placeholder)
+                    .setValue(this.plugin.settings[key])
+                    .onChange(async v => {
+                        this.plugin.settings[key] = v;
+                        await this.plugin.saveSettings();
+                    }));
+            return setting;   // 返回 Setting 对象，便于外部进一步定制
+        }
+
+        _addTextArea(name, desc, key, placeholder = '') {
+            const setting = new Setting(this.containerEl)
+                .setName(name)
+                .setDesc(desc)
+                .addTextArea(t => t
+                    .setPlaceholder(placeholder)
+                    .setValue(this.plugin.settings[key])
+                    .onChange(async v => {
+                        this.plugin.settings[key] = v;
+                        await this.plugin.saveSettings();
+                    }));
+            return setting;
+        }
 }
 
 // 搜索弹窗

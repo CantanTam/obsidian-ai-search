@@ -202,7 +202,7 @@
     pointer-events: none;      /* 让点击穿透到输入框 */
     z-index: 0;
     color: var(--text-muted); 
-    opacity: 0.3; 
+    opacity: 0.2; 
 }
 
 .aisearch-svg-placeholder svg {
@@ -217,3 +217,4 @@
 .theme-dark .aisearch-svg-placeholder {
     color: #ffffff;
 }
+
