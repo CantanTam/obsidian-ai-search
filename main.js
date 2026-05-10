@@ -213,25 +213,52 @@ class AISearchSettingTab extends PluginSettingTab {
             });
         }
 
+        // 按键设置显示函数
+        _codeToDisplay(code) {
+            if (code.startsWith('Key')) {
+                // 字母键：KeyI → I
+                return code.slice(3);
+            }
+            if (code.startsWith('Digit')) {
+                // 数字键：Digit1 → 1
+                return code.slice(5);
+            }
+            const map = {
+                'Space': 'Space',
+                'ArrowUp': '↑',
+                'ArrowDown': '↓',
+                'ArrowLeft': '←',
+                'ArrowRight': '→',
+                'Enter': 'Enter',
+                'Escape': 'Esc',
+                'Tab': 'Tab',
+                'Backspace': '⌫',
+                'Delete': 'Del',
+                // 可按需添加其他键
+            };
+            return map[code] || code;  // 未映射的直接显示原 code
+        }
+
         _addKeyBinding(name, key) {
             new Setting(this.containerEl)
                 .setName(name)
                 .addText(t => {
                     const inp = t.inputEl;
-                    inp.value = this.plugin.settings[key];
+                    // 显示转换后的可读文本
+                    inp.value = this._codeToDisplay(this.plugin.settings[key]);
                     Object.assign(inp.style, {
                         cursor: 'pointer',
                         textAlign: 'center',
                         width: '100px',
-                        borderRadius: '24px',      // ← 添加这一行，实现腰圆效果
-                        paddingLeft: '8px',        // 可选，让文字与边框不贴太紧
+                        borderRadius: '24px',
+                        paddingLeft: '8px',
                         paddingRight: '8px'
                     });
                     inp.addEventListener('keydown', async e => {
                         e.preventDefault();
-                        const code = e.code;
-                        t.setValue(code);
+                        const code = e.code;                    // 保存原始 code
                         this.plugin.settings[key] = code;
+                        t.setValue(this._codeToDisplay(code)); // 显示转换后的文本
                         await this.plugin.saveSettings();
                         inp.blur();
                     });
