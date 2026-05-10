@@ -1,9 +1,9 @@
 {
-    "id": "AAAdeepseekit",
-    "name": "AAADeepSeekIt",
+    "id": "ai-search",
+    "name": "Ai Search",
     "version": "1.0.0",
     "minAppVersion": "1.0.0",
-    "description": "双击 Alt 唤起 DeepSeek 搜索框",
-    "author": "YourName",
+    "description": "调用大模型api进行搜索",
+    "author": "Cantan Tam",
     "isDesktopOnly": true
 }
