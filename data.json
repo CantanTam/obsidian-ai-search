@@ -16,5 +16,5 @@
   "toThink": true,
   "clearInputTime": 1,
   "selectSearch": true,
-  "searchPrompt": "模拟搜索引擎，搜索「{{selection}}」的相关信息并进行输出"
+  "searchPrompt": ""
 }
